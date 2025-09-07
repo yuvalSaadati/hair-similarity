@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hairstyle Similarity</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; max-width: 900px; }
+    h1 { margin-bottom: 8px; }
+    section { margin: 16px 0 28px; padding-bottom: 16px; border-bottom: 1px solid #eee; }
+    input[type=file] { margin-top: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+    .card { border: 1px solid #e5e5e5; border-radius: 8px; padding: 8px; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    img { width: 100%; height: auto; border-radius: 6px; }
+    button { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; cursor: pointer; }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+  </style>
+  <script>
+    async function ingestCreators() {
+      const usernames = document.getElementById('usernames').value
+        .split(/[,\s]+/)
+        .filter(Boolean);
+      const limit = document.getElementById('limit').value || 100;
+      const url = new URL('/ingest/instagram/creators', window.location.origin);
+      usernames.forEach(u => url.searchParams.append('usernames', u));
+      url.searchParams.append('limit_per_user', limit);
+      const btn = document.getElementById('ingestBtn');
+      btn.disabled = true; btn.textContent = 'Ingesting...';
+      try {
+        const res = await fetch(url, { method: 'POST' });
+        const json = await res.json();
+        alert('Ingest done: ' + JSON.stringify(json));
+      } catch (e) {
+        alert('Error: ' + e);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Ingest creators';
+      }
+    }
+
+    async function searchUpload() {
+      const file = document.getElementById('queryFile').files[0];
+      if (!file) { alert('Choose an image'); return; }
+      const form = new FormData();
+      form.append('file', file);
+      const topk = document.getElementById('topk').value || 12;
+      const url = new URL('/search/upload', window.location.origin);
+      url.searchParams.append('top_k', topk);
+      const btn = document.getElementById('searchBtn');
+      btn.disabled = true; btn.textContent = 'Searching...';
+      try {
+        const res = await fetch(url, { method: 'POST', body: form });
+        const json = await res.json();
+        const grid = document.getElementById('results');
+        grid.innerHTML = '';
+        (json.matches || []).forEach(m => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `<a href="${m.url}" target="_blank"><img src="${m.url}" /></a>
+                            <div>similarity: ${m.similarity.toFixed(3)}</div>
+                            <div>${(m.hashtags||[]).join(' ')}</div>`;
+          grid.appendChild(card);
+        });
+      } catch (e) {
+        alert('Error: ' + e);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Search similar';
+      }
+    }
+  </script>
+</head>
+<body>
+  <h1>Hairstyle Similarity</h1>
+  <section>
+    <h3>Ingest creators</h3>
+    <div class="row">
+      <input id="usernames" type="text" placeholder="creator1, creator2" style="flex:1" />
+      <input id="limit" type="number" value="100" min="1" max="200" style="width:100px" />
+      <button id="ingestBtn" onclick="ingestCreators()">Ingest creators</button>
+    </div>
+    <small>Provide Instagram usernames (Business/Creator). Will fetch up to N posts each.</small>
+  </section>
+
+  <section>
+    <h3>Search by upload</h3>
+    <div class="row">
+      <input id="queryFile" type="file" accept="image/*" />
+      <input id="topk" type="number" value="12" min="1" max="100" style="width:80px" />
+      <button id="searchBtn" onclick="searchUpload()">Search similar</button>
+    </div>
+    <div id="results" class="grid" style="margin-top:12px"></div>
+  </section>
+</body>
+</html>
+

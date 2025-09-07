@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+pillow
+ftfy
+regex
+tqdm
+git+https://github.com/openai/CLIP.git
+psycopg[binary]
+python-dotenv
+pgvector
+requests
+# Needed for FastAPI file uploads
+python-multipart
+# For CPU-only PyTorch wheels:
+torch
+torchvision
