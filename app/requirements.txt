@@ -11,6 +11,9 @@ pgvector
 requests
 # Needed for FastAPI file uploads
 python-multipart
+# OAuth and session management
+authlib
+python-jose[cryptography]
 # For CPU-only PyTorch wheels:
 torch
 torchvision
