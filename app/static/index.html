@@ -58,10 +58,10 @@
     .filter-icon { width: 16px; height: 16px; color: #666; }
     .filter-input { padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; background: white; }
     .filter-input:focus { outline: none; border-color: #405de6; }
-    .price-slider { width: 200px; }
+    .price-slider { width: 280px; }
     .price-display { color: #8b5cf6; font-weight: 600; font-size: 16px; }
-    .slider-container { position: relative; }
-    .slider { width: 100%; height: 6px; border-radius: 3px; background: #e5e7eb; outline: none; -webkit-appearance: none; }
+    .slider-container { position: relative; height: 28px; }
+    .slider { width: 100%; height: 6px; border-radius: 3px; background: #e5e7eb; outline: none; -webkit-appearance: none; position: absolute; top: 11px; }
     .slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: white; border: 2px solid #333; cursor: pointer; }
     .slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: white; border: 2px solid #333; cursor: pointer; }
     .clear-filters-btn { padding: 10px 16px; background: #6b7280; color: white; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; margin-left: auto; }
@@ -332,34 +332,35 @@
     return new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS' }).format(value);
   }
 
-  minSlider.addEventListener("input", () => {
-    const minValue = parseInt(minSlider.value);
-    const maxValue = parseInt(maxSlider.value);
+  // Dual range slider helpers
+  function clampAndRenderPrices() {
+    const maxSlider = document.getElementById('maxSlider');
+    const maxInput  = document.getElementById('maxInput');
+    const maxLabel  = document.getElementById('maxLabel');
+    let maxVal = parseInt(maxSlider.value || '10000');
+    if (isNaN(maxVal)) maxVal = 10000;
+    maxVal = Math.max(0, Math.min(10000, maxVal));
+    maxSlider.value = maxVal; maxInput.value = maxVal;
+    maxLabel.textContent = `₪ ${maxVal.toLocaleString('he-IL')}`;
+  }
 
-    if (minValue > maxValue) {
-      minSlider.value = maxValue;
-      minPriceLabel.textContent = formatCurrency(maxValue);
-    } else {
-      minPriceLabel.textContent = formatCurrency(minValue);
-    }
-  });
-
-  maxSlider.addEventListener("input", () => {
-    const minValue = parseInt(minSlider.value);
-    const maxValue = parseInt(maxSlider.value);
-
-    if (maxValue < minValue) {
-      maxSlider.value = minValue;
-      maxPriceLabel.textContent = formatCurrency(minValue);
-    } else {
-      maxPriceLabel.textContent = formatCurrency(maxValue);
-    }
-  });
+  function bindMaxOnlySlider() {
+    const maxSlider = document.getElementById('maxSlider');
+    const maxInput  = document.getElementById('maxInput');
+    const onChange = () => { clampAndRenderPrices(); filterCreators(); };
+    maxSlider.addEventListener('input', onChange);
+    maxInput.addEventListener('input', () => {
+      let v = parseInt(maxInput.value || '10000');
+      if (isNaN(v)) v = 10000; v = Math.max(0, Math.min(10000, v));
+      maxSlider.value = v; onChange();
+    });
+    clampAndRenderPrices();
+  }
 
     
     function filterCreators() {
       const locationFilter = Array.from(document.getElementById('filterLocation').selectedOptions).map(o => o.value);
-      const maxPrice = parseInt(document.getElementById('priceSlider').value);
+      const maxPrice = parseInt(document.getElementById('maxInput').value || '10000');
       const dateFilter = document.getElementById('filterDate').value;
       
       let filtered = allCreators.filter(creator => {
@@ -371,13 +372,20 @@
           }
         }
         
-        // Price filter
-        if (creator.min_price && creator.min_price > maxPrice) {
-          return false;
-        }
-        if (creator.max_price && creator.max_price > maxPrice) {
-          return false;
-        }
+        // Price filter (keep creators with any price inside the range)
+        // Include creators whose price range intersects [0, maxPrice]
+        const minCreator = Math.min(
+          creator.max_price ?? Infinity,
+          creator.min_price ?? Infinity
+        );
+        const maxCreator = Math.max(
+          creator.max_price ?? -Infinity,
+          creator.min_price ?? -Infinity
+        );
+        const intersects = (isFinite(minCreator) || isFinite(maxCreator))
+          ? (minCreator <= maxPrice)
+          : true; // if no prices provided, include
+        if (!intersects) return false;
         
         // Date filter (placeholder - would need availability API)
         // For now, just pass through
@@ -389,8 +397,9 @@
     
     function clearFilters() {
       document.getElementById('filterLocation').selectedIndex = -1;
-      document.getElementById('priceSlider').value = 10000;
-      document.getElementById('priceDisplay').textContent = '$10000';
+      document.getElementById('maxSlider').value = 10000;
+      document.getElementById('maxInput').value  = 10000;
+      clampAndRenderPrices();
       document.getElementById('filterDate').value = '';
       filterCreators();
     }
@@ -401,6 +410,7 @@
       loadCreators();
       
       // Setup filter event listeners
+      bindMaxOnlySlider();
       document.getElementById('filterLocation').addEventListener('change', filterCreators);
       document.getElementById('filterDate').addEventListener('change', filterCreators);
     };
@@ -531,19 +541,17 @@
         </select>
       </div>
       
-      <div class="price-slider-container">
-        <div class="price-labels">
-          <span>₪ 250,000</span>
-          <span>₪ 70,000</span>
+      <div class="filter-group price-slider">
+        <label class="filter-label">
+          <svg class="filter-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/></svg>
+          Max Price (₪)
+        </label>
+        <div style="display:flex; gap:12px; align-items:center; margin:6px 0;">
+          <input id="maxInput" class="filter-input" type="number" min="0" max="10000" step="50" value="10000" style="flex:1;" />
+          <strong id="maxLabel">₪ 10,000</strong>
         </div>
-        <div class="slider-inputs">
-          <input type="text" value="250000" />
-          <input type="text" value="70000" />
-        </div>
-        <div class="slider-rail">
-          <div class="slider-track" style="right: 25%; width: 50%;"></div>
-          <div class="slider-thumb" style="right: 25%;"></div>
-          <div class="slider-thumb" style="right: 75%;"></div>
+        <div class="slider-container">
+          <input type="range" id="maxSlider" class="slider" min="0" max="10000" value="10000" step="50">
         </div>
       </div>
       
