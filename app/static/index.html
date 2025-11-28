@@ -1,696 +1,262 @@
 <!DOCTYPE html>
-<html>
+<html lang="he" dir="rtl">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Hairstyle Similarity</title>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 24px; max-width: 1200px; }
-    h1 { margin-bottom: 8px; text-align: center; color: #333; }
-    section { margin: 24px 0; padding: 20px; border: 1px solid #e5e5e5; border-radius: 8px; background: #fafafa; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-top: 16px; }
-    .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
-    img { width: 100%; height: 200px; object-fit: cover; border-radius: 6px; }
-    button { padding: 10px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; }
-    .btn-primary { background: #405de6; color: white; }
-    .btn-secondary { background: #6c757d; color: white; }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-    input[type="text"], input[type="number"], input[type="file"] { padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; }
-    .hashtags { color: #666; font-size: 0.9em; margin-top: 8px; }
-    .similarity { color: #28a745; font-weight: bold; margin-top: 4px; }
-    .loading { text-align: center; color: #666; }
-    .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-top: 12px; }
-    .slot { padding: 10px; border: 1px solid #ddd; border-radius: 6px; text-align: center; cursor: pointer; background: #fff; }
-    .slot:hover { background: #f3f4f6; }
-    .creator-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 8px; background: white; }
-    .creator-info { display: flex; flex-direction: column; gap: 4px; }
-    .post-count { color: #666; font-size: 0.9em; }
-    .btn-profile { padding: 6px 12px; background: #405de6; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em; }
-    .btn-profile:hover { background: #3b4db8; }
-    /* Modal */
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
-    .modal.open { display: flex; }
-    .modal-card { width: 480px; background: white; border-radius: 16px; padding: 0; box-shadow: 0 20px 40px rgba(0,0,0,0.15); overflow: hidden; }
-    .modal-header { padding: 32px 32px 16px; text-align: center; border-bottom: 1px solid #f0f0f0; }
-    .modal-title { font-size: 28px; font-weight: 700; color: #1a1a1a; margin: 0 0 8px 0; }
-    .modal-subtitle { font-size: 16px; color: #666; margin: 0; }
-    .modal-close { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 24px; color: #999; cursor: pointer; padding: 4px; }
-    .modal-body { padding: 32px; }
-    .form-group { margin-bottom: 24px; }
-    .form-label { display: flex; align-items: center; gap: 8px; font-weight: 600; color: #333; margin-bottom: 8px; font-size: 14px; }
-    .form-icon { width: 16px; height: 16px; color: #666; }
-    .form-input { width: 100%; padding: 12px 16px; border: 2px solid #e5e5e5; border-radius: 8px; font-size: 16px; transition: border-color 0.2s; box-sizing: border-box; }
-    .form-input:focus { outline: none; border-color: #405de6; }
-    .form-input::placeholder { color: #999; }
-    .price-range { display: flex; align-items: center; gap: 12px; }
-    .price-input { flex: 1; }
-    .price-separator { color: #666; font-weight: 500; }
-    .modal-actions { padding: 0 32px 32px; }
-    .btn-get-started { width: 100%; padding: 16px; background: #333; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
-    .btn-get-started:hover { background: #555; }
-    .btn-get-started:disabled { background: #ccc; cursor: not-allowed; }
-    
-    /* Filter Bar */
-    .filter-bar { background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 20px; align-items: end; flex-wrap: wrap; }
-    .filter-group { display: flex; flex-direction: column; gap: 8px; min-width: 150px; }
-    .filter-label { display: flex; align-items: center; gap: 6px; font-weight: 600; color: #333; font-size: 14px; }
-    .filter-icon { width: 16px; height: 16px; color: #666; }
-    .filter-input { padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; background: white; }
-    .filter-input:focus { outline: none; border-color: #405de6; }
-    .price-slider { width: 280px; }
-    .price-display { color: #8b5cf6; font-weight: 600; font-size: 16px; }
-    .slider-container { position: relative; height: 28px; }
-    .slider { width: 100%; height: 6px; border-radius: 3px; background: #e5e7eb; outline: none; -webkit-appearance: none; position: absolute; top: 11px; }
-    .slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: white; border: 2px solid #333; cursor: pointer; }
-    .slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: white; border: 2px solid #333; cursor: pointer; }
-    .clear-filters-btn { padding: 10px 16px; background: #6b7280; color: white; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; margin-left: auto; }
-    .clear-filters-btn:hover { background: #4b5563; }
-    .filter-group {
-    direction: rtl;
-    margin: 20px;
-  }
-
-  .price-slider-container {
-  direction: rtl;
-  font-family: Arial, sans-serif;
-  width: 100%;
-  max-width: 600px;
-  margin: 1em auto;
-}
-
-.price-labels {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.5em;
-  font-weight: bold;
-  font-size: 1rem;
-  color: #333;
-}
-
-.slider-inputs {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 1em;
-}
-
-.slider-inputs input {
-  width: 48%;
-  font-size: 1rem;
-  text-align: center;
-  padding: 0.3em;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  direction: ltr;
-}
-
-.slider-rail {
-  position: relative;
-  height: 4px;
-  background: #ccc;
-  border-radius: 2px;
-}
-
-.slider-track {
-  position: absolute;
-  height: 100%;
-  background-color: #000;
-  border-radius: 2px;
-}
-
-.slider-thumb {
-  position: absolute;
-  top: -6px;
-  width: 16px;
-  height: 16px;
-  background-color: white;
-  border: 2px solid #000;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-  </style>
-  <script>
-    // Allowed keywords to decide if an image should be shown
-    const KEYWORDS = [
-      'hair', 'bride', 'שיער', 'מסרקת', 'עיצוב שיער'
-    ];
-    function allowByKeywords(tags) {
-      const text = (tags || []).join(' ').toLowerCase();
-      return KEYWORDS.some(k => text.includes(k.toLowerCase()));
-    }
-    // Remove card if the image cannot be loaded
-    function handleImgError(img) {
-      const card = img.closest('.card');
-      if (card) card.remove();
-    }
-    // Load random photos on page load
-    async function loadRandomPhotos() {
-      try {
-        const res = await fetch('/api/random-photos?limit=12');
-        const data = await res.json();
-        displayPhotos(data.photos, 'randomPhotos');
-      } catch (e) {
-        console.error('Error loading random photos:', e);
-      }
-    }
-
-    function displayPhotos(photos, containerId) {
-      const container = document.getElementById(containerId);
-      container.innerHTML = '';
-      photos.filter(p => allowByKeywords(p.hashtags)).forEach(photo => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <a href="${photo.url}" target="_blank">
-            <img src="${photo.url}" alt="" onerror="handleImgError(this)" />
-          </a>
-          <div class="hashtags">${(photo.hashtags || []).join(' ')}</div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    async function searchUpload() {
-      const file = document.getElementById('queryFile').files[0];
-      if (!file) { 
-        alert('Please choose an image to search'); 
-        return; 
-      }
-      
-      const form = new FormData();
-      form.append('file', file);
-      const topk = document.getElementById('topk').value || 12;
-      const url = new URL('/search/upload', window.location.origin);
-      url.searchParams.append('top_k', topk);
-      
-      const btn = document.getElementById('searchBtn');
-      btn.disabled = true; 
-      btn.textContent = 'Searching...';
-      
-      try {
-        const res = await fetch(url, { method: 'POST', body: form });
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-        const json = await res.json();
-        displaySearchResults(json.matches || []);
-      } catch (e) {
-        alert('Error: ' + e.message);
-      } finally {
-        btn.disabled = false; 
-        btn.textContent = 'Search Similar';
-      }
-    }
-
-    function displaySearchResults(matches) {
-      const container = document.getElementById('searchResults');
-      container.innerHTML = '';
-      
-      if (matches.length === 0) {
-        container.innerHTML = '<div class="loading">No similar images found</div>';
-        return;
-      }
-      
-      matches.filter(m => allowByKeywords(m.hashtags)).forEach(match => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <a href="${match.url}" target="_blank">
-            <img src="${match.url}" alt="" onerror="handleImgError(this)" />
-          </a>
-          <div class="similarity">Similarity: ${(match.similarity * 100).toFixed(1)}%</div>
-          <div class="hashtags">${(match.hashtags || []).join(' ')}</div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    async function searchHashtags() {
-      const hashtags = document.getElementById('hashtagInput').value
-        .split(/[,\s]+/)
-        .filter(tag => tag.trim())
-        .map(tag => tag.startsWith('#') ? tag : '#' + tag);
-      
-      if (hashtags.length === 0) {
-        alert('Please enter at least one hashtag');
-        return;
-      }
-      
-      const topk = document.getElementById('hashtagTopk').value || 12;
-      const url = new URL('/search/hashtags', window.location.origin);
-      hashtags.forEach(tag => url.searchParams.append('hashtags', tag));
-      url.searchParams.append('top_k', topk);
-      
-      const btn = document.getElementById('hashtagBtn');
-      btn.disabled = true; 
-      btn.textContent = 'Searching...';
-      
-      try {
-        const res = await fetch(url, { method: 'GET' });
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-        const json = await res.json();
-        displayHashtagResults(json.matches || []);
-      } catch (e) {
-        alert('Error: ' + e.message);
-      } finally {
-        btn.disabled = false; 
-        btn.textContent = 'Search Hashtags';
-      }
-    }
-
-    function displayHashtagResults(matches) {
-      const container = document.getElementById('hashtagResults');
-      container.innerHTML = '';
-      
-      if (matches.length === 0) {
-        container.innerHTML = '<div class="loading">No images found with those hashtags</div>';
-        return;
-      }
-      
-      matches.filter(m => allowByKeywords(m.hashtags)).forEach(match => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <a href="${match.url}" target="_blank">
-            <img src="${match.url}" alt="" onerror="handleImgError(this)" />
-          </a>
-          <div class="hashtags">${(match.hashtags || []).join(' ')}</div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    // Load creators on page load
-    async function loadCreators() {
-      try {
-        const res = await fetch('/api/creators');
-        const data = await res.json();
-        allCreators = data.creators;
-        filterCreators(); // Apply current filters
-      } catch (e) {
-        console.error('Error loading creators:', e);
-      }
-    }
-
-    function displayCreators(creators) {
-      const container = document.getElementById('creatorsList');
-      container.innerHTML = '';
-      
-      if (creators.length === 0) {
-        container.innerHTML = '<div class="loading">No creators found. Add some creators to see them here!</div>';
-        return;
-      }
-      
-      creators.forEach(creator => {
-        const creatorDiv = document.createElement('div');
-        creatorDiv.className = 'creator-item';
-        creatorDiv.innerHTML = `
-          <div class="creator-info">
-            <strong>@${creator.username}</strong>
-            <span class="post-count">${creator.post_count} posts</span>
-          </div>
-          <div class="creator-actions">
-            <a href="${creator.profile_url}" target="_blank" class="btn-profile">View Profile</a>
-          </div>
-        `;
-        container.appendChild(creatorDiv);
-      });
-    }
-
-    // Filter functionality
-    let allCreators = [];
-    const minSlider = document.getElementById("minPrice");
-  const maxSlider = document.getElementById("maxPrice");
-
-  const minPriceLabel = document.getElementById("minPriceLabel");
-  const maxPriceLabel = document.getElementById("maxPriceLabel");
-
-  function formatCurrency(value) {
-    return new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS' }).format(value);
-  }
-
-  // Dual range slider helpers
-  function clampAndRenderPrices() {
-    const maxSlider = document.getElementById('maxSlider');
-    const maxInput  = document.getElementById('maxInput');
-    const maxLabel  = document.getElementById('maxLabel');
-    let maxVal = parseInt(maxSlider.value || '10000');
-    if (isNaN(maxVal)) maxVal = 10000;
-    maxVal = Math.max(0, Math.min(10000, maxVal));
-    maxSlider.value = maxVal; maxInput.value = maxVal;
-    maxLabel.textContent = `₪ ${maxVal.toLocaleString('he-IL')}`;
-  }
-
-  function bindMaxOnlySlider() {
-    const maxSlider = document.getElementById('maxSlider');
-    const maxInput  = document.getElementById('maxInput');
-    const onChange = () => { clampAndRenderPrices(); filterCreators(); };
-    maxSlider.addEventListener('input', onChange);
-    maxInput.addEventListener('input', () => {
-      let v = parseInt(maxInput.value || '10000');
-      if (isNaN(v)) v = 10000; v = Math.max(0, Math.min(10000, v));
-      maxSlider.value = v; onChange();
-    });
-    clampAndRenderPrices();
-  }
-
-    
-    function filterCreators() {
-      const locationFilter = Array.from(document.getElementById('filterLocation').selectedOptions).map(o => o.value);
-      const maxPrice = parseInt(document.getElementById('maxInput').value || '10000');
-      const dateFilter = document.getElementById('filterDate').value;
-      
-      let filtered = allCreators.filter(creator => {
-        // Location filter
-        if (locationFilter.length > 0) {
-          const creatorLocations = (creator.location || '').split(', ').map(l => l.trim());
-          if (!locationFilter.some(loc => creatorLocations.includes(loc))) {
-            return false;
-          }
-        }
-        
-        // Price filter (keep creators with any price inside the range)
-        // Include creators whose price range intersects [0, maxPrice]
-        const minCreator = Math.min(
-          creator.max_price ?? Infinity,
-          creator.min_price ?? Infinity
-        );
-        const maxCreator = Math.max(
-          creator.max_price ?? -Infinity,
-          creator.min_price ?? -Infinity
-        );
-        const intersects = (isFinite(minCreator) || isFinite(maxCreator))
-          ? (minCreator <= maxPrice)
-          : true; // if no prices provided, include
-        if (!intersects) return false;
-        
-        // Date filter (placeholder - would need availability API)
-        // For now, just pass through
-        return true;
-      });
-      
-      displayCreators(filtered);
-    }
-    
-    function clearFilters() {
-      document.getElementById('filterLocation').selectedIndex = -1;
-      document.getElementById('maxSlider').value = 10000;
-      document.getElementById('maxInput').value  = 10000;
-      clampAndRenderPrices();
-      document.getElementById('filterDate').value = '';
-      filterCreators();
-    }
-    
-    // Load random photos when page loads
-    window.onload = function() {
-      // loadRandomPhotos();
-      loadCreators();
-      
-      // Setup filter event listeners
-      bindMaxOnlySlider();
-      document.getElementById('filterLocation').addEventListener('change', filterCreators);
-      document.getElementById('filterDate').addEventListener('change', filterCreators);
-    };
-
-    // -------- Calendar Connect & Availability --------
-    function updateCalendarLink() {
-      const creatorId = document.getElementById('creatorId')?.value?.trim() || '';
-      const link = document.getElementById('connectCalLink');
-      if (link) {
-        link.href = creatorId ? `/oauth/google/start?creator_id=${encodeURIComponent(creatorId)}` : '#';
-      }
-    }
-
-    async function loadAvailability() {
-      const creatorId = document.getElementById('creatorId').value.trim();
-      if (!creatorId) { alert('Enter creator ID'); return; }
-      const start = document.getElementById('startDate').value;
-      const end = document.getElementById('endDate').value;
-      const minutes = document.getElementById('slotMinutes').value || 60;
-      if (!start || !end) { alert('Choose start and end dates'); return; }
-      const url = `/api/creators/${encodeURIComponent(creatorId)}/availability?start_date=${start}&end_date=${end}&slot_minutes=${minutes}`;
-      const btn = document.getElementById('loadSlotsBtn');
-      btn.disabled = true; btn.textContent = 'Loading...';
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const { slots } = await res.json();
-        renderSlots(slots || []);
-      } catch (e) {
-        alert('Error loading availability: ' + e.message);
-      } finally {
-        btn.disabled = false; btn.textContent = 'Load availability';
-      }
-    }
-
-    function renderSlots(slots) {
-      const wrap = document.getElementById('slots');
-      wrap.innerHTML = '';
-      if (!slots.length) {
-        wrap.innerHTML = '<div class="loading">No slots available for this range.</div>';
-        return;
-      }
-      slots.forEach(s => {
-        const div = document.createElement('div');
-        div.className = 'slot';
-        const start = new Date(s.start).toLocaleString();
-        const end = new Date(s.end).toLocaleString();
-        div.textContent = `${start} → ${end}`;
-        div.onclick = () => alert(`Selected: ${start} → ${end}`);
-        wrap.appendChild(div);
-      });
-    }
-
-    function openCreatorModal() {
-      document.getElementById('creatorModal').classList.add('open');
-    }
-    function closeCreatorModal() {
-      document.getElementById('creatorModal').classList.remove('open');
-    }
-    async function saveCreator() {
-      const username = document.getElementById('c_username').value.trim();
-      if (!username) { alert('Username is required'); return; }
-      
-      // Collect multi-select regions
-      const locSelect = document.getElementById('c_location');
-      const selectedRegions = Array.from(locSelect.selectedOptions).map(o => o.value);
-      const locationValue = selectedRegions.join(', ');
-      
-      const params = new URLSearchParams({
-        username,
-        phone: document.getElementById('c_phone').value.trim(),
-        location: locationValue,
-        min_price: document.getElementById('c_min_price').value,
-        max_price: document.getElementById('c_max_price').value,
-        // Removed calendar_url since it's not in the new design
-      });
-      
-      const btn = document.querySelector('.btn-get-started');
-      btn.disabled = true;
-      btn.textContent = 'Creating...';
-      
-      try {
-        const res = await fetch('/api/creators?' + params.toString(), { method: 'POST' });
-        if (!res.ok) throw new Error('Failed to save');
-        const result = await res.json();
-        
-        // Handle rejection case (bio doesn't contain hair keywords)
-        if (result.status === 'rejected') {
-          alert(`Creator rejected: ${result.reason}\nBio: "${result.bio}"`);
-          return;
-        }
-        
-        closeCreatorModal();
-        await loadCreators();
-        // Removed the "Creator saved" alert
-      } catch (e) {
-        alert('Error: ' + e.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Get Started';
-      }
-    }
-  </script>
+  <title>התאמות מדויקות עם טכנולוגיית דמיון תמונות</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-  <h1>🎨 Hairstyle Similarity Search</h1>
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div style="display: flex; gap: 12px;">
+      <button id="signUpBtn" class="btn-secondary">הרשמה</button>
+      <button id="signInBtn" class="btn-secondary">כניסה לחשבון</button>
+    </div>
+    <h1 style="margin: 0; text-align: center; flex: 1;">🎨 התאמות מדויקות עם טכנולוגיית דמיון תמונות</h1>
+    <div style="width: 200px;"></div> <!-- Spacer for balance -->
+  </div>
   
+  <!-- Main Content -->
   <section>
-    <h3>👥 Creators</h3>
-    
     <!-- Filter Bar -->
-    <div class="filter-bar">
-      <div class="filter-group">
-        <label class="filter-label">
-          <svg class="filter-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-          </svg>
-          Location
-        </label>
-        <select id="filterLocation" class="filter-input" multiple>
-          <option value="North">North (צפון)</option>
-          <option value="Haifa">Haifa (חיפה)</option>
-          <option value="Center">Center (מרכז)</option>
-          <option value="Tel Aviv">Tel Aviv (תל אביב)</option>
-          <option value="Sharon">Sharon (שרון)</option>
-          <option value="Jerusalem">Jerusalem (ירושלים)</option>
-          <option value="South">South (דרום)</option>
-        </select>
+    <div class="filter-bar" style="justify-content: flex-end; gap: 20px;">
+      <div class="filter-group" style="min-width: 200px;">
+        <label class="filter-label">מיקום</label>
+        <div class="region-dropdown" id="regionDropdown">
+          <button id="regionDropdownBtn" type="button" class="region-btn" aria-haspopup="listbox" aria-expanded="false">
+            <span id="regionSelectedLabel" class="region-label placeholder">בחרו אזורים...</span>
+            <svg class="region-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div id="regionDropdownMenu" class="region-menu" role="listbox" aria-multiselectable="true">
+            <div id="regionOptionsList" class="region-list">
+              <label class="region-item"><input type="checkbox" value="North"/> מחוז הצפון</label>
+              <label class="region-item"><input type="checkbox" value="Haifa"/> מחוז חיפה</label>
+              <label class="region-item"><input type="checkbox" value="Center"/> מחוז המרכז</label>
+              <label class="region-item"><input type="checkbox" value="Tel Aviv"/> מחוז תל אביב</label>
+              <label class="region-item"><input type="checkbox" value="Sharon">שרון</label>
+              <label class="region-item"><input type="checkbox" value="Jerusalem"/> מחוז ירושלים</label>
+              <label class="region-item"><input type="checkbox" value="South"/> מחוז הדרום</label>
+            </div>
+          </div>
+        </div>
       </div>
       
-      <div class="filter-group price-slider">
-        <label class="filter-label">
-          <svg class="filter-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/></svg>
-          Max Price (₪)
-        </label>
-        <div style="display:flex; gap:12px; align-items:center; margin:6px 0;">
-          <input id="maxInput" class="filter-input" type="number" min="0" max="10000" step="50" value="10000" style="flex:1;" />
-          <strong id="maxLabel">₪ 10,000</strong>
+      <div class="filter-group price-slider" style="min-width: 200px;">
+        <div class="price-header" style="gap:12px;">
+          <div class="price-display" id="maxLabel">₪ 10,000</div>
+          <div class="price-title">מחיר מקסימלי:</div>
+          <div class="price-currency">$</div>
         </div>
-        <div class="slider-container">
+        <div class="slider-container" style="margin-top:6px;">
           <input type="range" id="maxSlider" class="slider" min="0" max="10000" value="10000" step="50">
         </div>
       </div>
       
-      
-      
-      
-      <div class="filter-group">
+      <div class="filter-group" style="min-width: 150px;">
         <label class="filter-label">
           <svg class="filter-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
           </svg>
-          Availability
+          זמינות
         </label>
-        <input type="date" id="filterDate" class="filter-input" placeholder="Pick a date">
+        <input type="date" id="filterDate" class="filter-input" placeholder="בחרו תאריך">
       </div>
       
-      <button class="clear-filters-btn" onclick="clearFilters()">Clear Filters</button>
+      <div style="display:flex; gap:12px;">
+        <button class="match-btn" id="styleMatchBtn">
+          <span style="display:inline-block;transform: translateY(2px);">✨</span>
+          התאמת סגנון
+        </button>
+        <button class="clear-filters-btn" id="clearFiltersBtn">איפוס סינונים</button>
+        <input id="styleMatchFile" type="file" accept="image/*" style="display:none" />
+      </div>
     </div>
     
-    <div class="row" style="justify-content: flex-end;">
-      <button class="btn-primary" onclick="openCreatorModal()">I'm a Creator</button>
-    </div>
-    
+    <!-- Creators Grid -->
     <div id="creatorsList"></div>
   </section>
 
-  <section>
-    <h3>📸 Random Hairstyles</h3>
-    <p>Discover hairstyles from our database</p>
-    <div id="randomPhotos" class="grid">
-      <div class="loading">Loading random photos...</div>
-    </div>
-  </section>
-
-  <!-- Creator Modal -->
-  <div id="creatorModal" class="modal" onclick="if(event.target===this) closeCreatorModal()">
+  <!-- Sign Up Modal -->
+  <div id="signUpModal" class="modal">
     <div class="modal-card">
-      <button class="modal-close" onclick="closeCreatorModal()">×</button>
+      <button class="modal-close">×</button>
       <div class="modal-header">
-        <h2 class="modal-title">Join as a Creator</h2>
-        <p class="modal-subtitle">Share your talent with the world. Fill out the form below to get started.</p>
+        <h2 class="modal-title">הרשמה כיוצר/ת</h2>
+        <p class="modal-subtitle">הצטרפו לקהילה שלנו וחשפו את הכישרון שלכם</p>
       </div>
-      <div class="modal-body">
+      <form id="signUpForm" class="modal-body">
+        <div class="form-group">
+          <label class="form-label">אימייל</label>
+          <input id="signup_email" class="form-input" type="email" placeholder="name@example.com" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">סיסמה</label>
+          <input id="signup_password" class="form-input" type="password" placeholder="••••••••" required />
+        </div>
         <div class="form-group">
           <label class="form-label">
             <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
             </svg>
-            Location
+            מיקום
           </label>
-          <select id="c_location" class="form-input" multiple>
-            <option value="North">North (צפון)</option>
-            <option value="Haifa">Haifa (חיפה)</option>
-            <option value="Center">Center (מרכז)</option>
-            <option value="Tel Aviv">Tel Aviv (תל אביב)</option>
-            <option value="Sharon">Sharon (שרון)</option>
-            <option value="Jerusalem">Jerusalem (ירושלים)</option>
-            <option value="South">South (דרום)</option>
+          <select id="signup_location" class="form-input" multiple>
+            <option value="North">צפון</option>
+            <option value="Haifa">חיפה</option>
+            <option value="Center">מרכז</option>
+            <option value="Tel Aviv">תל אביב</option>
+            <option value="Sharon">שרון</option>
+            <option value="Jerusalem">ירושלים</option>
+            <option value="South">דרום</option>
           </select>
         </div>
-        
         <div class="form-group">
           <label class="form-label">
             <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
             </svg>
-            Price Range
+            טווח מחירים
           </label>
           <div class="price-range">
-            <input id="c_max_price" class="form-input price-input" type="number" min="0" step="1" placeholder="Min" />
+            <input id="signup_min_price" class="form-input price-input" type="number" min="0" step="1" placeholder="מינימום" />
             <span class="price-separator">-</span>
-            <input id="c_min_price" class="form-input price-input" type="number" min="0" step="1" placeholder="Max" />
+            <input id="signup_max_price" class="form-input price-input" type="number" min="0" step="1" placeholder="מקסימום" />
           </div>
         </div>
-        
         <div class="form-group">
           <label class="form-label">
             <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M6.62 10.79C8.06 13.62 10.38 15.94 13.21 17.38L15.41 15.18C15.69 14.9 16.08 14.82 16.43 14.93C17.55 15.3 18.75 15.5 20 15.5C20.55 15.5 21 15.95 21 16.5V20C21 20.55 20.55 21 20 21C10.61 21 3 13.39 3 4C3 3.45 3.45 3 4 3H7.5C8.05 3 8.5 3.45 8.5 4C8.5 5.25 8.7 6.45 9.07 7.57C9.18 7.92 9.1 8.31 8.82 8.59L6.62 10.79Z"/>
             </svg>
-            Phone Number
+            מספר טלפון
           </label>
-          <input id="c_phone" class="form-input" type="tel" placeholder="05X-XXX-XXXX" />
+          <input id="signup_phone" class="form-input" type="tel" placeholder="05X-XXX-XXXX" />
         </div>
-        
         <div class="form-group">
           <label class="form-label">
             <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
             </svg>
-            Instagram Username
+            שם משתמש באינסטגרם
           </label>
-          <input id="c_username" class="form-input" type="text" placeholder="@your_username" />
+          <input id="signup_username" class="form-input" type="text" placeholder="@שם_משתמש" required />
         </div>
-      </div>
-      <div class="modal-actions">
-        <button class="btn-get-started" onclick="saveCreator()">Get Started</button>
-      </div>
+        <div class="modal-actions">
+          <button type="submit" class="btn-primary">התחילו</button>
+        </div>
+      </form>
     </div>
   </div>
 
-  
+  <!-- Sign In Modal -->
+  <div id="signInModal" class="modal">
+    <div class="modal-card">
+      <button class="modal-close">×</button>
+      <div class="modal-header">
+        <h2 class="modal-title">כניסה לחשבון</h2>
+        <p class="modal-subtitle">הזינו אימייל וסיסמה כדי להמשיך</p>
+      </div>
+      <form id="signInForm" class="modal-body">
+        <div class="form-group">
+          <label class="form-label">אימייל</label>
+          <input id="signin_email" class="form-input" type="email" placeholder="name@example.com" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">סיסמה</label>
+          <input id="signin_password" class="form-input" type="password" placeholder="••••••••" required />
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="btn-primary">התחבר</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-  <section>
-    <h3>🔍 Search by Image</h3>
-    <p>Upload an image to find similar hairstyles</p>
-    <div class="row">
-      <input id="queryFile" type="file" accept="image/*" style="flex:1" />
-      <input id="topk" type="number" value="12" min="1" max="50" style="width:100px" placeholder="Results" />
-      <button id="searchBtn" onclick="searchUpload()" class="btn-primary">Search Similar</button>
+  <!-- Creator Management Modal -->
+  <div id="creatorManagementModal" class="modal">
+    <div class="modal-card" style="width: 90%; max-width: 1000px;">
+      <button class="modal-close">×</button>
+      <div class="modal-header">
+        <h2 class="modal-title">ניהול פרופיל יוצר/ת</h2>
+        <p class="modal-subtitle">עדכנו את הפרטים שלכם ובחרו תמונה ראשית</p>
+      </div>
+      <form id="creatorMgmtForm" class="modal-body">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+          <!-- Left side - Creator details form -->
+          <div>
+            <h3 style="margin-bottom: 16px; color: #333;">פרטי יוצר/ת</h3>
+            <div class="form-group">
+              <label class="form-label">
+                <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+                מיקום
+              </label>
+              <select id="mgmt_location" class="form-input" multiple>
+                <option value="North">צפון</option>
+                <option value="Haifa">חיפה</option>
+                <option value="Center">מרכז</option>
+                <option value="Tel Aviv">תל אביב</option>
+                <option value="Sharon">שרון</option>
+                <option value="Jerusalem">ירושלים</option>
+                <option value="South">דרום</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
+                </svg>
+                טווח מחירים
+              </label>
+              <div class="price-range">
+                <input id="mgmt_min_price" class="form-input price-input" type="number" min="0" step="1" placeholder="מינימום" />
+                <span class="price-separator">-</span>
+                <input id="mgmt_max_price" class="form-input price-input" type="number" min="0" step="1" placeholder="מקסימום" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M6.62 10.79C8.06 13.62 10.38 15.94 13.21 17.38L15.41 15.18C15.69 14.9 16.08 14.82 16.43 14.93C17.55 15.3 18.75 15.5 20 15.5C20.55 15.5 21 15.95 21 16.5V20C21 20.55 20.55 21 20 21C10.61 21 3 13.39 3 4C3 3.45 3.45 3 4 3H7.5C8.05 3 8.5 3.45 8.5 4C8.5 5.25 8.7 6.45 9.07 7.57C9.18 7.92 9.1 8.31 8.82 8.59L6.62 10.79Z"/>
+                </svg>
+                מספר טלפון
+              </label>
+              <input id="mgmt_phone" class="form-input" type="tel" placeholder="05X-XXX-XXXX" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                </svg>
+                שם משתמש באינסטגרם
+              </label>
+              <input id="mgmt_username" class="form-input" type="text" placeholder="@שם_משתמש" required />
+            </div>
+            <button type="submit" class="btn-primary" style="width: 100%; margin-top: 16px;">עדכן פרופיל</button>
+          </div>
+          
+          <!-- Right side - Image gallery -->
+          <div>
+            <h3 style="margin-bottom: 16px; color: #333;">בחרו תמונה ראשית</h3>
+            <div id="creatorImagesGallery" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; max-height: 400px; overflow-y: auto;">
+              <!-- Images will be loaded here -->
+            </div>
+          </div>
+        </div>
+      </form>
     </div>
-    <div id="searchResults" class="grid"></div>
-  </section>
+  </div>
 
-  <section>
-    <h3>🏷️ Search by Hashtags</h3>
-    <p>Find hairstyles by hashtags</p>
-    <div class="row">
-      <input id="hashtagInput" type="text" placeholder="#curly, #blonde, #short" style="flex:1" />
-      <input id="hashtagTopk" type="number" value="12" min="1" max="50" style="width:100px" placeholder="Results" />
-      <button id="hashtagBtn" onclick="searchHashtags()" class="btn-secondary">Search Hashtags</button>
-    </div>
-    <div id="hashtagResults" class="grid"></div>
-  </section>
-
-  <section>
-    <h3>📅 Creator Calendar</h3>
-    <p>Connect Google Calendar and load available slots</p>
-    <div class="row">
-      <input id="creatorId" type="text" placeholder="Creator ID (UUID)" style="flex:1" oninput="updateCalendarLink()" />
-      <a id="connectCalLink" href="#" class="btn-primary">Connect Google Calendar</a>
-    </div>
-    <div class="row">
-      <input id="startDate" type="date" />
-      <input id="endDate" type="date" />
-      <input id="slotMinutes" type="number" value="60" min="15" step="15" style="width:120px" />
-      <button id="loadSlotsBtn" class="btn-secondary" onclick="loadAvailability()">Load availability</button>
-    </div>
-    <div id="slots" class="slots"></div>
-  </section>
+  <!-- Scripts -->
+  <script type="module" src="/js/main.js"></script>
 </body>
 </html>
