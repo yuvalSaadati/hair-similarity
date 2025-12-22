@@ -28,7 +28,7 @@ export function displayCreators(creators) {
 export function createCreatorCard(creator) {
   const card = document.createElement('div');
   card.className = 'creator-card';
-  card.style.cssText = 'border-radius: 16px; overflow: hidden; background: transparent; box-shadow: none; display: flex; flex-direction: column; width: 100%; max-width: 320px; margin: 0 auto; cursor: pointer;';
+  card.style.cssText = 'border-radius: 16px; overflow: hidden; background: transparent; box-shadow: none; display: flex; flex-direction: column; width: 100%; margin: 0; cursor: pointer;';
   
   // Make entire card clickable to Instagram
   if (creator.username) {
