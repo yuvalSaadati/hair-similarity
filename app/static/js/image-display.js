@@ -100,35 +100,43 @@ async function updateAllCreatorCardsForSimilarity(queryImageFile) {
         
         // Only show creators that have matches (top 10 from API)
         // Results are already sorted by similarity score from the API
-        const updatedCreators = matches.map(match => {
+        // Use Promise.all to handle async URL fetching
+        const updatedCreators = await Promise.all(matches.map(async (match) => {
             // Find the creator data
             const creator = creators.find(c => c.username === match.creator_username);
+            
+            // Get image URLs using get_instagram_media_url
+            // match.image.url should be the Instagram post URL (permalink)
+            let imageUrl = match.image.media_url;
+        
+        
+            
             if (!creator) {
                 // If creator not found, create minimal object
                 return {
                     username: match.creator_username,
                     similarity_score: match.similarity_score,
                     similar_image_data: match.image,
-                    sample_image: match.image.url || (match.image.media_id ? `/api/images/${match.image.media_id}/proxy` : null)
+                    sample_image: imageUrl
                 };
             }
             
             return {
                 ...creator,
                 // Use the most similar image as the display image
-                sample_image: match.image.url || (match.image.media_id ? `/api/images/${match.image.media_id}/proxy` : null),
+                sample_image: imageUrl,
                 similarity_score: match.similarity_score,
                 similar_image_media_id: match.image.media_id,
                 similar_image_data: {
                     id: match.image.id,
                     media_id: match.image.media_id,
-                    url: match.image.url || (match.image.media_id ? `/api/images/${match.image.media_id}/proxy` : null),
+                    url: imageUrl,
                     caption: match.image.caption,
                     width: match.image.width,
                     height: match.image.height
                 }
             };
-        });
+        }));
         
         await updateCreatorCardsDisplay(updatedCreators);
     } catch (error) {
@@ -213,5 +221,5 @@ export function initializeImageDisplay() {
     }
     
     // Load initial creators
-    updateAllCreatorCardsForDefault();
+    // updateAllCreatorCardsForDefault();
 }

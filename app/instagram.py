@@ -61,7 +61,7 @@ def ig_get_creator_profile(username: str) -> Dict:
         "biography": bd.get("biography", "")
     }
 
-def ig_get_recent_media_by_creator(username: str, limit: int = 30) -> List[Dict]:
+def ig_get_recent_media_by_creator(username: str, limit: int = 20) -> List[Dict]:
     """Get recent media by creator username"""
     url = f"https://graph.facebook.com/v21.0/{IG_USER_ID}"
     params = {
@@ -82,14 +82,15 @@ def ig_expand_media_to_images(media_list: List[Dict]) -> List[Dict]:
         mtype = media.get("media_type")
         if mtype == "IMAGE":
             images.append(media)
+        elif mtype == "VIDEO":
+            # Include videos as well (they have media_url)
+            # images.append(media)
+            continue
         elif mtype == "CAROUSEL_ALBUM":
-            mid = media.get("id")
-            try:
-                return media
-           
-            except Exception as e:
-                print(f"Failed to expand carousel for {mid}: {e}")
-                # If carousel expansion fails, add the main media item
+            # Use the media_url directly from the carousel album
+            # No need to fetch children - the media_url is already available
+            if media.get("media_url"):
+                images.append(media)
      
     return images
 

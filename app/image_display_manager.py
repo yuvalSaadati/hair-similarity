@@ -11,6 +11,8 @@ from app.db import conn
 from app.image_processing import image_to_embedding
 from PIL import Image
 import io
+import numpy as np
+import json
 
 def get_creator_display_image(username: str, query_embedding: Optional[Any] = None) -> Optional[Dict[str, Any]]:
     """
@@ -27,6 +29,27 @@ def get_creator_display_image(username: str, query_embedding: Optional[Any] = No
         with conn.cursor() as cur:
             if query_embedding is not None:
                 # Similarity search mode: find most similar image
+                # Convert query embedding to numpy
+                if hasattr(query_embedding, 'detach'):
+                    query_emb_np = query_embedding.detach().cpu().numpy()
+                elif hasattr(query_embedding, 'cpu'):
+                    query_emb_np = query_embedding.cpu().numpy()
+                elif not isinstance(query_embedding, np.ndarray):
+                    query_emb_np = np.array(query_embedding)
+                else:
+                    query_emb_np = query_embedding
+                
+                if len(query_emb_np.shape) > 1:
+                    query_emb_np = query_emb_np.flatten()
+                
+                # Normalize query embedding
+                query_norm = np.linalg.norm(query_emb_np)
+                if query_norm == 0:
+                    query_emb_np = query_emb_np
+                else:
+                    query_emb_np = query_emb_np / query_norm
+                
+                # Get all images for this creator
                 cur.execute("""
                     SELECT 
                         i.id,
@@ -36,16 +59,58 @@ def get_creator_display_image(username: str, query_embedding: Optional[Any] = No
                         i.caption,
                         i.width,
                         i.height,
-                        1 - (i.embedding <=> %s) as similarity_score
+                        i.embedding
                     FROM images i
                     WHERE EXISTS (
                         SELECT 1 FROM unnest(i.hashtags) h 
                         WHERE h = '@' || %s
                     )
                     AND i.embedding IS NOT NULL
-                    ORDER BY i.embedding <=> %s
-                    LIMIT 1
-                """, (query_embedding, username, query_embedding))
+                """, (username,))
+                
+                rows = cur.fetchall()
+                
+                # Find most similar image
+                best_match = None
+                best_similarity = -1
+                
+                for row in rows:
+                    try:
+                        # Parse JSONB embedding
+                        emb_json = row[7]
+                        if isinstance(emb_json, str):
+                            emb_array = json.loads(emb_json)
+                        else:
+                            emb_array = emb_json
+                        
+                        # Calculate cosine similarity
+                        emb_np = np.array(emb_array, dtype=np.float32)
+                        emb_norm = np.linalg.norm(emb_np)
+                        if emb_norm == 0:
+                            continue
+                        emb_np = emb_np / emb_norm
+                        similarity = float(np.dot(query_emb_np, emb_np))
+                        
+                        if similarity > best_similarity:
+                            best_similarity = similarity
+                            best_match = row
+                    except Exception as e:
+                        continue
+                
+                if best_match:
+                    row = best_match
+                    return {
+                        "id": str(row[0]),
+                        "media_id": row[1],
+                        "proxy_url": row[2],
+                        "original_url": row[3],
+                        "caption": row[4],
+                        "width": row[5],
+                        "height": row[6],
+                        "similarity_score": best_similarity
+                    }
+                else:
+                    return None
             else:
                 # Default mode: show first/newest image
                 cur.execute("""
@@ -56,8 +121,7 @@ def get_creator_display_image(username: str, query_embedding: Optional[Any] = No
                         i.url,
                         i.caption,
                         i.width,
-                        i.height,
-                        NULL as similarity_score
+                        i.height
                     FROM images i
                     WHERE EXISTS (
                         SELECT 1 FROM unnest(i.hashtags) h 
@@ -67,20 +131,20 @@ def get_creator_display_image(username: str, query_embedding: Optional[Any] = No
                     LIMIT 1
                 """, (username,))
             
-            row = cur.fetchone()
-            if not row:
-                return None
-            
-            return {
-                "id": str(row[0]),
-                "media_id": row[1],
-                "proxy_url": row[2],  # /api/images/{media_id}/proxy
-                "original_url": row[3],
-                "caption": row[4],
-                "width": row[5],
-                "height": row[6],
-                "similarity_score": float(row[7]) if row[7] is not None else None
-            }
+                row = cur.fetchone()
+                if not row:
+                    return None
+                
+                return {
+                    "id": str(row[0]),
+                    "media_id": row[1],
+                    "proxy_url": row[2],  # /api/images/{media_id}/proxy
+                    "original_url": row[3],
+                    "caption": row[4],
+                    "width": row[5],
+                    "height": row[6],
+                    "similarity_score": None
+                }
             
     except Exception as e:
         print(f"Error getting display image for {username}: {e}")

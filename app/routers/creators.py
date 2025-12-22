@@ -66,8 +66,7 @@ def get_creators_with_display_images():
                     recent_image = ig_get_most_recent_image(username)
                     creator_dict["display_image"] = recent_image["media_url"]
                     # Use proxy URL for recent image from Instagram API
-                    creator_dict["recent_image"] = f"/api/images/{recent_image['media_id']}/proxy"
-                    creator_dict["recent_image_media_id"] = recent_image["media_id"]
+                    creator_dict["recent_image"] = recent_image["media_url"]
                 except Exception as e:
                     print(f"Failed to get display image for {username}: {e}")
                     import traceback
@@ -122,20 +121,29 @@ def upsert_my_creator(request: dict, current_user: dict = Depends(get_current_us
     if not is_hair_related_caption(bio) and not is_hair_related_caption(username):
         raise HTTPException(400, "Creator profile must contain hair-related content")
     
+    # Check if creator already exists (to determine if this is a new signup)
+    from app.database import get_creator_by_user_id
+    existing_creator = get_creator_by_user_id(current_user["id"])
+    is_new_creator = existing_creator is None
+    
     # Upsert creator
     upsert_creator(current_user["id"], username, phone, location, min_price, max_price, 
                    calendar_url, profile_data)
     
-    # Trigger background task to ingest Instagram images
-    if background_tasks:
-        background_tasks.add_task(ingest_instagram_creators, [username], ingest_limit)
-        print(f"Scheduled Instagram content ingest for {username} (limit: {ingest_limit})")
+    # Only ingest images for NEW creators (on signup), not on updates
+    if is_new_creator:
+        # Trigger background task to ingest Instagram images
+        if background_tasks:
+            background_tasks.add_task(ingest_instagram_creators, [username], ingest_limit)
+            print(f"Scheduled Instagram content ingest for NEW creator {username} (limit: {ingest_limit})")
+        else:
+            # If no background tasks available, run synchronously (not recommended for production)
+            print(f"Running Instagram content ingest synchronously for NEW creator {username}")
+            ingest_instagram_creators([username], ingest_limit)
     else:
-        # If no background tasks available, run synchronously (not recommended for production)
-        print(f"Running Instagram content ingest synchronously for {username}")
-        ingest_instagram_creators([username], ingest_limit)
+        print(f"Skipping image ingestion - creator {username} already exists (update, not signup)")
     
-    return {"status": "ok", "scheduled_ingest_for": username, "limit": ingest_limit}
+    return {"status": "ok", "scheduled_ingest_for": username if is_new_creator else None, "limit": ingest_limit, "is_new_creator": is_new_creator}
 
 @router.get("/{username}/images")
 def get_creator_images(username: str, current_user: dict = Depends(get_current_user)):
@@ -221,7 +229,7 @@ def ingest_instagram_creators(usernames: List[str], limit_per_user: int = 100):
                         from app.image_processing import embed_image_from_url
                         img, emb, (w, h), proxy_url = embed_image_from_url(url, im["id"])
                         insert_image_row("instagram", im["id"], im.get("permalink", url),
-                                       [f"@{uname}"], w, h, emb, caption=caption, media_id=im["id"], creator_username=uname)
+                                       [f"@{uname}"], w, h, emb, caption=caption, media_id=im["id"], creator_username=uname, media_type=im.get("media_type"))
                         added += 1
                     except Exception as e:
                         skipped += 1

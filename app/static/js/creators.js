@@ -8,7 +8,7 @@ export function displayCreators(creators) {
   
   container.innerHTML = '';
   
-  if (creators.length === 0) {
+  if (!creators || creators.length === 0) {
     container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">אין יוצרים זמינים</div>';
     return;
   }
@@ -47,8 +47,8 @@ export function createCreatorCard(creator) {
   // Use similar image URL if in similarity mode, otherwise use recent image, then fallback to sample
   const imageUrl = creator.similar_image_data?.url || 
                    creator.recent_image || 
-                   creator.sample_image || 
-                   (creator.display_image?.proxy_url || creator.display_image?.original_url) || 
+                   creator.sample_image  
+                    || creator.display_image?.original_url|| 
                    '';
   headerImg.src = imageUrl;
   headerImg.alt = creator.similar_image_data?.caption || creator.bio || '';

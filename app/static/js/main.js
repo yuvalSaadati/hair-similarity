@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   try {
     // Load initial data
-    await loadRandomPhotos();
+    // await loadRandomPhotos();
     await loadCreators();
     
     // Setup UI components

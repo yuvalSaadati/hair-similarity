@@ -1,5 +1,5 @@
 // Filter and search functions
-import { searchByUpload } from './api.js';
+import { searchByUploadByCreator } from './api.js';
 import { filterCreators, sortCreators, displayCreators } from './creators.js';
 import { showLoading } from './ui.js';
 import { handleSimilaritySearch, handleClearFilters } from './image-display.js';
@@ -115,7 +115,7 @@ async function handleStyleMatchFile(input) {
     showLoading('creatorsList', 'מחפש התאמות...');
     
     // Search for similar images
-    const matches = await searchByUpload(file);
+    const matches = await searchByUploadByCreator(file);
     
     if (matches && matches.length > 0) {
       // Update creator cards with best matches

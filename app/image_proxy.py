@@ -7,11 +7,13 @@ This avoids storing large files locally and prevents URL expiration issues.
 
 import requests
 import io
-from typing import Optional, Tuple
+import base64
+from typing import Optional, Tuple, List
 from PIL import Image
 from app.config import IG_ACCESS_TOKEN, IG_USER_ID
 from app.db import conn
-
+import json
+import re
 def fetch_instagram_image_by_id(media_id: str) -> Optional[Tuple[Image.Image, str]]:
     """
     Fetch image from Instagram using media ID
@@ -67,6 +69,75 @@ def get_image_proxy_url(media_id: str) -> str:
     """
     return f"/api/images/{media_id}/proxy"
 
+# Global flag to track if we've warned about token issues
+_token_warning_logged = False
+
+def get_instagram_media_url(public_post_url: str) -> List[str]:
+    """
+    Get Instagram media URLs using Graph API query
+    
+    Args:
+        public_post_url: Instagram public post URL (e.g., https://www.instagram.com/p/ABC123/)
+    
+    Returns:
+        List of media URLs (image or video URLs). Returns empty list if failed.
+    """
+    try:
+        # Fetch the HTML page to extract media_id
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+                          "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                          "Chrome/120.0.0.0 Safari/537.36"
+        }
+        resp = requests.get(public_post_url, headers=headers, timeout=20)
+        if resp.status_code != 200:
+            print(f"Failed to fetch page {public_post_url}: {resp.status_code}")
+            return []
+        
+        # Extract media_id from page source using regex (Instagram embeds it in script tags)
+        # Look for media_id pattern in the HTML
+        id_match = re.search(r'"media_id":"(\d+)"', resp.text)
+        if not id_match:
+            # Try alternative pattern
+            id_match = re.search(r'"id":"(\d+)"', resp.text)
+        
+        media_id = id_match.group(1) if id_match else None
+        
+        if not media_id:
+            print(f"Could not extract media_id from URL: {public_post_url}")
+            return []
+        # GET https://graph.facebook.com/{ig-media-id}?fields=children{media_url,media_type}&access_token={token}
+
+        # Use the Graph API query pattern from line 91
+        url = f"https://graph.facebook.com/v21.0/{media_id}"
+        params = {
+            "fields": "children{media_url,media_type},media_url,media_type",
+            "access_token": IG_ACCESS_TOKEN
+        }
+        
+        response = requests.get(url, params=params, timeout=30)
+        response.raise_for_status()
+        
+        data = response.json()
+        urls = []
+        
+        # Check if it's a carousel (has children)
+        if "children" in data and "data" in data["children"]:
+            for child in data["children"]["data"]:
+                if child.get("media_url"):
+                    urls.append(child["media_url"])
+        # Otherwise, use the direct media_url
+        elif data.get("media_url"):
+            urls.append(data["media_url"])
+        
+        return urls
+        
+    except Exception as e:
+        print(f"Failed to get Instagram media URLs from {public_post_url}: {e}")
+        return []
+   
+
+
 def fetch_instagram_profile_picture(username: str) -> Optional[Tuple[Image.Image, str]]:
     """
     Fetch profile picture from Instagram using username
@@ -115,23 +186,64 @@ def create_image_proxy_endpoint():
     Create FastAPI endpoint for image proxy
     This should be called from the main app
     """
-    from fastapi import APIRouter, HTTPException
+    from fastapi import APIRouter, HTTPException, Query
     from fastapi.responses import StreamingResponse
     
-    router = APIRouter()
+    router = APIRouter(prefix="/api", tags=["images"])
     
     @router.get("/images/{media_id}/proxy")
     def proxy_image(media_id: str):
         """
         Proxy endpoint for Instagram images
-        Fetches image on-demand and streams it to client
+        Fetches image using media_url stored in database, or falls back to Instagram Graph API
         """
         try:
-            result = fetch_instagram_image_by_id(media_id)
-            if not result:
-                raise HTTPException(404, "Image not found")
+            # First, try to get media_url from database
+            media_url = None
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT media_url 
+                    FROM images 
+                    WHERE media_id = %s
+                    LIMIT 1
+                """, (media_id,))
+                row = cur.fetchone()
+                if row and row[0]:
+                    media_url = row[0]
             
-            img, original_url = result
+            # If not in database, fall back to Instagram Graph API
+            if not media_url:
+                result = fetch_instagram_image_by_id(media_id)
+                if result:
+                    img, fetched_url = result
+                    # Convert to RGB if needed
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    
+                    # Convert image to bytes
+                    img_bytes = io.BytesIO()
+                    img.save(img_bytes, format='JPEG', quality=85)
+                    img_bytes.seek(0)
+                    
+                    return StreamingResponse(
+                        io.BytesIO(img_bytes.getvalue()),
+                        media_type="image/jpeg",
+                        headers={
+                            "Cache-Control": "public, max-age=3600",
+                            "Content-Disposition": f"inline; filename=instagram_{media_id}.jpg"
+                        }
+                    )
+                else:
+                    raise HTTPException(404, f"No image found for media_id: {media_id}")
+            
+            # Fetch the image from the stored media_url
+            img_response = requests.get(media_url, timeout=30)
+            img_response.raise_for_status()
+            img = Image.open(io.BytesIO(img_response.content))
+            
+            # Convert to RGB if needed
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
             
             # Convert image to bytes
             img_bytes = io.BytesIO()
@@ -143,7 +255,7 @@ def create_image_proxy_endpoint():
                 io.BytesIO(img_bytes.getvalue()),
                 media_type="image/jpeg",
                 headers={
-                    "Cache-Control": "public, max-age=3600",  # Cache for 1 hour
+                    "Cache-Control": "public, max-age=3600",
                     "Content-Disposition": f"inline; filename=instagram_{media_id}.jpg"
                 }
             )
@@ -207,47 +319,3 @@ def update_images_table_schema():
             CREATE INDEX IF NOT EXISTS idx_images_media_id 
             ON images(media_id);
         """)
-
-def store_image_metadata_only(media_id: str, source: str, source_id: str, 
-                            hashtags: list, width: int, height: int, 
-                            embedding, caption: str = None) -> str:
-    """
-    Store only image metadata and embedding, not the actual image
-    
-    Args:
-        media_id: Instagram media ID
-        source: Source type (instagram/user_upload)
-        source_id: Original source ID
-        hashtags: List of hashtags
-        width: Image width
-        height: Image height
-        embedding: CLIP embedding vector
-        caption: Image caption
-    
-    Returns:
-        Database ID of the stored record
-    """
-    import uuid
-    
-    with conn.cursor() as cur:
-        image_id = uuid.uuid4()
-        
-        cur.execute("""
-            INSERT INTO images (
-                id, source, source_id, media_id, hashtags, 
-                width, height, embedding, caption
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (source, source_id) DO UPDATE SET
-                media_id = EXCLUDED.media_id,
-                width = EXCLUDED.width,
-                height = EXCLUDED.height,
-                embedding = EXCLUDED.embedding,
-                caption = EXCLUDED.caption
-            RETURNING id
-        """, (
-            image_id, source, source_id, media_id, hashtags,
-            width, height, embedding, caption
-        ))
-        
-        result = cur.fetchone()
-        return str(result[0]) if result else str(image_id)

@@ -17,9 +17,11 @@ def get_my_creator(current_user: dict = Depends(get_current_user)):
 
 @router.put("/creator")
 def upsert_my_creator(current_user: dict = Depends(get_current_user),
-                     username: str = Query(...), phone: Optional[str] = None,
-                     location: Optional[str] = None, min_price: Optional[float] = None,
-                     max_price: Optional[float] = None, calendar_url: Optional[str] = None,
+                     username: str = Query(...), phone: Optional[str] = Query(None),
+                     location: Optional[str] = Query(None), 
+                     min_price: Optional[str] = Query(None),
+                     max_price: Optional[str] = Query(None), 
+                     calendar_url: Optional[str] = Query(None),
                      ingest_limit: int = Query(100, description="posts to fetch after save"),
                      background_tasks: BackgroundTasks = None):
     """Create or update current user's creator profile"""
@@ -48,20 +50,42 @@ def upsert_my_creator(current_user: dict = Depends(get_current_user),
     else:
         print(f"No Instagram credentials available, using form data only")
     
+    # Convert price strings to floats, handling empty strings
+    min_price_float = None
+    max_price_float = None
+    if min_price and min_price.strip():
+        try:
+            min_price_float = float(min_price)
+        except (ValueError, TypeError):
+            min_price_float = None
+    if max_price and max_price.strip():
+        try:
+            max_price_float = float(max_price)
+        except (ValueError, TypeError):
+            max_price_float = None
+    
+    # Check if creator already exists (to determine if this is a new signup)
+    existing_creator = get_creator_by_user_id(current_user["id"])
+    is_new_creator = existing_creator is None
+    
     # Upsert creator
-    upsert_creator(current_user["id"], username, phone, location, min_price, max_price, 
+    upsert_creator(current_user["id"], username, phone, location, min_price_float, max_price_float, 
                    calendar_url, profile_data)
     
-    # Schedule background ingest if Instagram credentials are available
-    if background_tasks and IG_ACCESS_TOKEN and IG_USER_ID:
-        background_tasks.add_task(ingest_instagram_creators, [username], ingest_limit)
-        print(f"Scheduled Instagram content ingest for {username}")
+    # Only ingest images for NEW creators (on signup), not on updates
+    if is_new_creator:
+        # Schedule background ingest if Instagram credentials are available
+        if background_tasks and IG_ACCESS_TOKEN and IG_USER_ID:
+            background_tasks.add_task(ingest_instagram_creators, [username], ingest_limit)
+            print(f"Scheduled Instagram content ingest for NEW creator {username}")
+        else:
+            print(f"Skipping Instagram content ingest - no credentials or background tasks")
     else:
-        print(f"Skipping Instagram content ingest - no credentials or background tasks")
+        print(f"Skipping image ingestion - creator {username} already exists (update, not signup)")
     
-    return {"status": "ok", "scheduled_ingest_for": username, "limit": ingest_limit}
+    return {"status": "ok", "scheduled_ingest_for": username if is_new_creator else None, "limit": ingest_limit, "is_new_creator": is_new_creator}
 
-def ingest_instagram_creators(usernames: List[str], limit_per_user: int = 100):
+def ingest_instagram_creators(usernames: List[str], limit_per_user: int = 20):
     """Background task to ingest Instagram content for creators"""
     added = 0
     skipped = 0
@@ -97,9 +121,11 @@ def ingest_instagram_creators(usernames: List[str], limit_per_user: int = 100):
                             width=w,
                             height=h,
                             embedding=embedding,  # Stored for similarity search
-                            caption=caption,
+                            caption=caption,  # Already extracted from im.get("caption", "") on line 97
                             media_id=im["id"],  # Used to fetch image on-demand via /api/images/{media_id}/proxy
-                            creator_username=uname  # Store creator username for efficient filtering
+                            creator_username=uname,  # Store creator username for efficient filtering
+                            media_type=im.get("media_type"),  # IMAGE, CAROUSEL_ALBUM, or VIDEO
+                            media_url=im.get("media_url")  # Temporary CDN URL (different from permalink)
                         )
                         
                         added += 1
