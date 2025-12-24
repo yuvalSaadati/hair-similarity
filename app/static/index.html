@@ -114,9 +114,10 @@
             <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
             </svg>
-            מיקום
+            מיקום יציאה
           </label>
-          <select id="signup_location" class="form-input" multiple>
+          <select id="signup_location" class="form-input">
+            <option value="">בחרו מיקום</option>
             <option value="North">צפון</option>
             <option value="Haifa">חיפה</option>
             <option value="Center">מרכז</option>
@@ -129,15 +130,72 @@
         <div class="form-group">
           <label class="form-label">
             <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+            מיקומי הגעה
+          </label>
+          <div class="region-dropdown" id="signupArrivalLocationDropdown">
+            <button id="signupArrivalLocationBtn" type="button" class="region-btn" aria-haspopup="listbox" aria-expanded="false">
+              <span id="signupArrivalLocationLabel" class="region-label placeholder">בחרו מיקומי הגעה...</span>
+              <svg class="region-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div id="signupArrivalLocationMenu" class="region-menu" role="listbox" aria-multiselectable="true">
+              <div id="signupArrivalLocationOptionsList" class="region-list">
+                <label class="region-item"><input type="checkbox" value="North"/> צפון</label>
+                <label class="region-item"><input type="checkbox" value="Haifa"/> חיפה</label>
+                <label class="region-item"><input type="checkbox" value="Center"/> מרכז</label>
+                <label class="region-item"><input type="checkbox" value="Tel Aviv"/> תל אביב</label>
+                <label class="region-item"><input type="checkbox" value="Sharon"> שרון</label>
+                <label class="region-item"><input type="checkbox" value="Jerusalem"/> ירושלים</label>
+                <label class="region-item"><input type="checkbox" value="South"/> דרום</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
             </svg>
-            טווח מחירים
+            מחיר תסרוקת לכלה
           </label>
-          <div class="price-range">
-            <input id="signup_min_price" class="form-input price-input" type="number" min="0" step="1" placeholder="מינימום" />
-            <span class="price-separator">-</span>
-            <input id="signup_max_price" class="form-input price-input" type="number" min="0" step="1" placeholder="מקסימום" />
-          </div>
+          <input id="signup_price_hairstyle_bride" class="form-input" type="number" min="0" step="1" placeholder="₪" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
+            </svg>
+            מחיר תסרוקת למלווה
+          </label>
+          <input id="signup_price_hairstyle_bridesmaid" class="form-input" type="number" min="0" step="1" placeholder="₪" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
+            </svg>
+            מחיר איפור כלה
+          </label>
+          <input id="signup_price_makeup_bride" class="form-input" type="number" min="0" step="1" placeholder="₪" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
+            </svg>
+            מחיר איפור מלווה
+          </label>
+          <input id="signup_price_makeup_bridesmaid" class="form-input" type="number" min="0" step="1" placeholder="₪" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
+            </svg>
+            מחיר תסרוקת + איפור
+          </label>
+          <input id="signup_price_hairstyle_makeup_combo" class="form-input" type="number" min="0" step="1" placeholder="₪" />
         </div>
         <div class="form-group">
           <label class="form-label">
@@ -206,9 +264,10 @@
                 <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                 </svg>
-                מיקום
+                מיקום יציאה
               </label>
-              <select id="mgmt_location" class="form-input" multiple>
+              <select id="mgmt_location" class="form-input">
+                <option value="">בחרו מיקום</option>
                 <option value="North">צפון</option>
                 <option value="Haifa">חיפה</option>
                 <option value="Center">מרכז</option>
@@ -221,15 +280,72 @@
             <div class="form-group">
               <label class="form-label">
                 <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+                מיקומי הגעה
+              </label>
+              <div class="region-dropdown" id="mgmtArrivalLocationDropdown">
+                <button id="mgmtArrivalLocationBtn" type="button" class="region-btn" aria-haspopup="listbox" aria-expanded="false">
+                  <span id="mgmtArrivalLocationLabel" class="region-label placeholder">בחרו מיקומי הגעה...</span>
+                  <svg class="region-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div id="mgmtArrivalLocationMenu" class="region-menu" role="listbox" aria-multiselectable="true">
+                  <div id="mgmtArrivalLocationOptionsList" class="region-list">
+                    <label class="region-item"><input type="checkbox" value="North"/> צפון</label>
+                    <label class="region-item"><input type="checkbox" value="Haifa"/> חיפה</label>
+                    <label class="region-item"><input type="checkbox" value="Center"/> מרכז</label>
+                    <label class="region-item"><input type="checkbox" value="Tel Aviv"/> תל אביב</label>
+                    <label class="region-item"><input type="checkbox" value="Sharon"> שרון</label>
+                    <label class="region-item"><input type="checkbox" value="Jerusalem"/> ירושלים</label>
+                    <label class="region-item"><input type="checkbox" value="South"/> דרום</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
                 </svg>
-                טווח מחירים
+                מחיר תסרוקת לכלה
               </label>
-              <div class="price-range">
-                <input id="mgmt_min_price" class="form-input price-input" type="number" min="0" step="1" placeholder="מינימום" />
-                <span class="price-separator">-</span>
-                <input id="mgmt_max_price" class="form-input price-input" type="number" min="0" step="1" placeholder="מקסימום" />
-              </div>
+              <input id="mgmt_price_hairstyle_bride" class="form-input" type="number" min="0" step="1" placeholder="₪" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
+                </svg>
+                מחיר תסרוקת למלווה
+              </label>
+              <input id="mgmt_price_hairstyle_bridesmaid" class="form-input" type="number" min="0" step="1" placeholder="₪" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
+                </svg>
+                מחיר איפור כלה
+              </label>
+              <input id="mgmt_price_makeup_bride" class="form-input" type="number" min="0" step="1" placeholder="₪" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
+                </svg>
+                מחיר איפור מלווה
+              </label>
+              <input id="mgmt_price_makeup_bridesmaid" class="form-input" type="number" min="0" step="1" placeholder="₪" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
+                </svg>
+                מחיר תסרוקת + איפור
+              </label>
+              <input id="mgmt_price_hairstyle_makeup_combo" class="form-input" type="number" min="0" step="1" placeholder="₪" />
             </div>
             <div class="form-group">
               <label class="form-label">
@@ -261,6 +377,47 @@
           </div>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Reviews Modal -->
+  <div id="reviewsModal" class="modal">
+    <div class="modal-card" style="max-width: 600px;">
+      <button class="modal-close">×</button>
+      <div class="modal-header">
+        <h2 class="modal-title">ביקורות</h2>
+        <p class="modal-subtitle" id="reviewsModalSubtitle">ביקורות על יוצר/ת זה</p>
+      </div>
+      <div class="modal-body">
+        <div id="reviewsList" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
+          <!-- Reviews will be loaded here -->
+        </div>
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 20px;">
+          <h3 style="margin-bottom: 16px; font-size: 18px; color: #333;">הוסף ביקורת</h3>
+          <form id="addReviewForm">
+            <div class="form-group">
+              <label class="form-label">שם (אופציונלי)</label>
+              <input id="reviewerName" class="form-input" type="text" placeholder="השם שלך" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">תגובה *</label>
+              <textarea id="reviewComment" class="form-input" rows="4" placeholder="כתבו את הביקורת שלכם..." required></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">דירוג (1-5)</label>
+              <select id="reviewRating" class="form-input">
+                <option value="">ללא דירוג</option>
+                <option value="5">5 - מעולה</option>
+                <option value="4">4 - טוב מאוד</option>
+                <option value="3">3 - טוב</option>
+                <option value="2">2 - בינוני</option>
+                <option value="1">1 - גרוע</option>
+              </select>
+            </div>
+            <button type="submit" class="btn-primary" style="width: 100%;">הוסף ביקורת</button>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 

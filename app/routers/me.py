@@ -18,9 +18,15 @@ def get_my_creator(current_user: dict = Depends(get_current_user)):
 @router.put("/creator")
 def upsert_my_creator(current_user: dict = Depends(get_current_user),
                      username: str = Query(...), phone: Optional[str] = Query(None),
-                     location: Optional[str] = Query(None), 
+                     location: Optional[str] = Query(None),
+                     arrival_location: Optional[str] = Query(None),
                      min_price: Optional[str] = Query(None),
-                     max_price: Optional[str] = Query(None), 
+                     max_price: Optional[str] = Query(None),
+                     price_hairstyle_bride: Optional[str] = Query(None),
+                     price_hairstyle_bridesmaid: Optional[str] = Query(None),
+                     price_makeup_bride: Optional[str] = Query(None),
+                     price_makeup_bridesmaid: Optional[str] = Query(None),
+                     price_hairstyle_makeup_combo: Optional[str] = Query(None),
                      calendar_url: Optional[str] = Query(None),
                      ingest_limit: int = Query(100, description="posts to fetch after save"),
                      background_tasks: BackgroundTasks = None):
@@ -51,26 +57,34 @@ def upsert_my_creator(current_user: dict = Depends(get_current_user),
         print(f"No Instagram credentials available, using form data only")
     
     # Convert price strings to floats, handling empty strings
-    min_price_float = None
-    max_price_float = None
-    if min_price and min_price.strip():
-        try:
-            min_price_float = float(min_price)
-        except (ValueError, TypeError):
-            min_price_float = None
-    if max_price and max_price.strip():
-        try:
-            max_price_float = float(max_price)
-        except (ValueError, TypeError):
-            max_price_float = None
+    def parse_price(price_str):
+        if price_str and price_str.strip():
+            try:
+                return float(price_str)
+            except (ValueError, TypeError):
+                return None
+        return None
+    
+    min_price_float = parse_price(min_price)
+    max_price_float = parse_price(max_price)
+    price_hairstyle_bride_float = parse_price(price_hairstyle_bride)
+    price_hairstyle_bridesmaid_float = parse_price(price_hairstyle_bridesmaid)
+    price_makeup_bride_float = parse_price(price_makeup_bride)
+    price_makeup_bridesmaid_float = parse_price(price_makeup_bridesmaid)
+    price_hairstyle_makeup_combo_float = parse_price(price_hairstyle_makeup_combo)
     
     # Check if creator already exists (to determine if this is a new signup)
     existing_creator = get_creator_by_user_id(current_user["id"])
     is_new_creator = existing_creator is None
     
     # Upsert creator
-    upsert_creator(current_user["id"], username, phone, location, min_price_float, max_price_float, 
-                   calendar_url, profile_data)
+    upsert_creator(current_user["id"], username, phone, location, arrival_location, min_price_float, max_price_float, 
+                   calendar_url, profile_data,
+                   price_hairstyle_bride=price_hairstyle_bride_float,
+                   price_hairstyle_bridesmaid=price_hairstyle_bridesmaid_float,
+                   price_makeup_bride=price_makeup_bride_float,
+                   price_makeup_bridesmaid=price_makeup_bridesmaid_float,
+                   price_hairstyle_makeup_combo=price_hairstyle_makeup_combo_float)
     
     # Only ingest images for NEW creators (on signup), not on updates
     if is_new_creator:

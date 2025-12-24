@@ -115,6 +115,26 @@ export function setSelectedValues(selectId, values) {
   });
 }
 
+// Get selected values from checkbox-based dropdown (for arrival location dropdowns)
+export function getSelectedValuesFromCheckboxes(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return [];
+  
+  const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+  return Array.from(checkboxes).map(cb => cb.value);
+}
+
+// Set selected values in checkbox-based dropdown
+export function setSelectedValuesInCheckboxes(containerId, values) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+  checkboxes.forEach(cb => {
+    cb.checked = values.includes(cb.value);
+  });
+}
+
 // Show notification
 export function showNotification(message, type = 'info') {
   // Create notification element

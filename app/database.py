@@ -48,8 +48,14 @@ def setup_database_schema():
             username TEXT UNIQUE NOT NULL,
             phone TEXT,
             location TEXT,
+            arrival_location TEXT[],
             min_price NUMERIC,
             max_price NUMERIC,
+            price_hairstyle_bride NUMERIC,
+            price_hairstyle_bridesmaid NUMERIC,
+            price_makeup_bride NUMERIC,
+            price_makeup_bridesmaid NUMERIC,
+            price_hairstyle_makeup_combo NUMERIC,
             calendar_url TEXT,
             created_at TIMESTAMPTZ DEFAULT now(),
             updated_at TIMESTAMPTZ DEFAULT now(),
@@ -92,6 +98,27 @@ def setup_database_schema():
         """)
         
         print("✅ Created images table with JSONB embedding column (stores tensor as array of floats)")
+        
+        # Reviews/Comments table
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS reviews (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            creator_username TEXT NOT NULL REFERENCES creators(username) ON DELETE CASCADE,
+            reviewer_name TEXT,
+            comment TEXT NOT NULL,
+            rating INT CHECK (rating >= 1 AND rating <= 5),
+            created_at TIMESTAMPTZ DEFAULT now(),
+            updated_at TIMESTAMPTZ DEFAULT now()
+        );
+        """)
+        
+        # Create index on creator_username for faster lookups
+        cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_reviews_creator_username 
+        ON reviews(creator_username);
+        """)
+        
+        print("✅ Created reviews table")
         
         # Add columns if they don't exist
         cur.execute("""
@@ -142,6 +169,43 @@ def setup_database_schema():
           ) THEN
             ALTER TABLE images ADD CONSTRAINT images_source_source_id_key UNIQUE (source, source_id);
           END IF;
+          -- Add new price columns if they don't exist
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='creators' AND column_name='price_hairstyle_bride'
+          ) THEN
+            ALTER TABLE creators ADD COLUMN price_hairstyle_bride NUMERIC;
+          END IF;
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='creators' AND column_name='price_hairstyle_bridesmaid'
+          ) THEN
+            ALTER TABLE creators ADD COLUMN price_hairstyle_bridesmaid NUMERIC;
+          END IF;
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='creators' AND column_name='price_makeup_bride'
+          ) THEN
+            ALTER TABLE creators ADD COLUMN price_makeup_bride NUMERIC;
+          END IF;
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='creators' AND column_name='price_makeup_bridesmaid'
+          ) THEN
+            ALTER TABLE creators ADD COLUMN price_makeup_bridesmaid NUMERIC;
+          END IF;
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='creators' AND column_name='price_hairstyle_makeup_combo'
+          ) THEN
+            ALTER TABLE creators ADD COLUMN price_hairstyle_makeup_combo NUMERIC;
+          END IF;
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='creators' AND column_name='arrival_location'
+          ) THEN
+            ALTER TABLE creators ADD COLUMN arrival_location TEXT[];
+          END IF;
         END $$;
         """)
 
@@ -153,8 +217,14 @@ def get_creators() -> List[CreatorResponse]:
                 c.username,
                 c.phone,
                 c.location,
+                c.arrival_location,
                 c.min_price,
                 c.max_price,
+                c.price_hairstyle_bride,
+                c.price_hairstyle_bridesmaid,
+                c.price_makeup_bride,
+                c.price_makeup_bridesmaid,
+                c.price_hairstyle_makeup_combo,
                 c.calendar_url,
                 c.profile_picture_local,
                 c.instagram_profile_picture,
@@ -168,6 +238,11 @@ def get_creators() -> List[CreatorResponse]:
                     WHERE h = '@' || c.username
                   )
                 ) AS post_count,
+                (
+                  SELECT COUNT(*)
+                  FROM reviews r
+                  WHERE r.creator_username = c.username
+                ) AS review_count,
                 (
                   SELECT CASE 
                              WHEN i2.media_id IS NOT NULL THEN CONCAT('/api/images/', i2.media_id, '/proxy')
@@ -202,21 +277,39 @@ def get_creators() -> List[CreatorResponse]:
     creators = []
     for r in rows:
         # Use Instagram profile picture URL directly
-        profile_picture_url = r[7]    # instagram_profile_picture
+        profile_picture_url = r[13]    # instagram_profile_picture (shifted due to new columns)
+        
+        # Handle arrival_location as array
+        arrival_locations = r[3]
+        if arrival_locations is None:
+            arrival_locations = []
+        elif isinstance(arrival_locations, list):
+            arrival_locations = arrival_locations
+        elif isinstance(arrival_locations, str):
+            arrival_locations = [loc.strip() for loc in arrival_locations.split(',') if loc.strip()]
+        else:
+            arrival_locations = []
         
         creators.append(CreatorResponse(
             creator_id=r[0],
             username=r[0],
             phone=r[1],
             location=r[2],
-            min_price=float(r[3]) if r[3] is not None else None,
-            max_price=float(r[4]) if r[4] is not None else None,
-            calendar_url=r[5],
+            arrival_location=','.join(arrival_locations) if arrival_locations else None,  # Convert array to comma-separated string for API
+            min_price=float(r[4]) if r[4] is not None else None,
+            max_price=float(r[5]) if r[5] is not None else None,
+            price_hairstyle_bride=float(r[6]) if r[6] is not None else None,
+            price_hairstyle_bridesmaid=float(r[7]) if r[7] is not None else None,
+            price_makeup_bride=float(r[8]) if r[8] is not None else None,
+            price_makeup_bridesmaid=float(r[9]) if r[9] is not None else None,
+            price_hairstyle_makeup_combo=float(r[10]) if r[10] is not None else None,
+            calendar_url=r[11],
             profile_picture=profile_picture_url,
-            bio=r[8],
-            post_count=int(r[10]) if r[10] is not None else 0,
-            sample_image=r[11],
-            sample_image_id=str(r[12]) if r[12] else None,
+            bio=r[14],
+            post_count=int(r[16]) if r[16] is not None else 0,
+            review_count=int(r[17]) if r[17] is not None else 0,
+            sample_image=r[18] if r[18] is not None else None,
+            sample_image_id=str(r[19]) if r[19] else None,
             profile_url=f"https://instagram.com/{r[0]}" if r[0] else None,
         ))
     
@@ -442,8 +535,10 @@ def get_creator_by_user_id(user_id: str) -> Optional[Dict]:
     """Get creator data by user ID"""
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT username, phone, location, min_price, max_price, calendar_url,
-                   instagram_profile_picture, instagram_bio
+            SELECT username, phone, location, arrival_location, min_price, max_price, 
+                   price_hairstyle_bride, price_hairstyle_bridesmaid, 
+                   price_makeup_bride, price_makeup_bridesmaid, price_hairstyle_makeup_combo,
+                   calendar_url, instagram_profile_picture, instagram_bio
             FROM creators
             WHERE user_id = %s
         """, (user_id,))
@@ -452,38 +547,80 @@ def get_creator_by_user_id(user_id: str) -> Optional[Dict]:
     if not row:
         return None
     
+    # Handle arrival_location as array - convert to list if it's an array, or parse comma-separated string
+    arrival_locations = row[3]
+    if arrival_locations is None:
+        arrival_locations = []
+    elif isinstance(arrival_locations, list):
+        arrival_locations = arrival_locations
+    elif isinstance(arrival_locations, str):
+        arrival_locations = [loc.strip() for loc in arrival_locations.split(',') if loc.strip()]
+    else:
+        arrival_locations = []
+    
     return {
         "username": row[0],
         "phone": row[1],
         "location": row[2],
-        "min_price": float(row[3]) if row[3] is not None else None,
-        "max_price": float(row[4]) if row[4] is not None else None,
-        "calendar_url": row[5],
-        "profile_picture": row[6],
-        "bio": row[7]
+        "arrival_location": ','.join(arrival_locations) if arrival_locations else None,  # Convert array to comma-separated string for frontend
+        "min_price": float(row[4]) if row[4] is not None else None,
+        "max_price": float(row[5]) if row[5] is not None else None,
+        "price_hairstyle_bride": float(row[6]) if row[6] is not None else None,
+        "price_hairstyle_bridesmaid": float(row[7]) if row[7] is not None else None,
+        "price_makeup_bride": float(row[8]) if row[8] is not None else None,
+        "price_makeup_bridesmaid": float(row[9]) if row[9] is not None else None,
+        "price_hairstyle_makeup_combo": float(row[10]) if row[10] is not None else None,
+        "calendar_url": row[11],
+        "profile_picture": row[12],
+        "bio": row[13]
     }
 
 def upsert_creator(user_id: str, username: str, phone: Optional[str] = None,
-                   location: Optional[str] = None, min_price: Optional[float] = None,
+                   location: Optional[str] = None, arrival_location: Optional[str] = None,
+                   min_price: Optional[float] = None,
                    max_price: Optional[float] = None, calendar_url: Optional[str] = None,
-                   instagram_data: Optional[Dict] = None):
+                   instagram_data: Optional[Dict] = None,
+                   price_hairstyle_bride: Optional[float] = None,
+                   price_hairstyle_bridesmaid: Optional[float] = None,
+                   price_makeup_bride: Optional[float] = None,
+                   price_makeup_bridesmaid: Optional[float] = None,
+                   price_hairstyle_makeup_combo: Optional[float] = None):
     """Create or update creator profile"""
+    # Convert arrival_location string (comma-separated) to array
+    arrival_location_array = None
+    if arrival_location:
+        if isinstance(arrival_location, str):
+            arrival_location_array = [loc.strip() for loc in arrival_location.split(',') if loc.strip()]
+        elif isinstance(arrival_location, list):
+            arrival_location_array = arrival_location
+    
     with conn.cursor() as cur:
         cur.execute("""
-            INSERT INTO creators (user_id, username, phone, location, min_price, max_price, calendar_url,
-                                instagram_profile_picture, instagram_bio, profile_picture_local, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NULL, now())
+            INSERT INTO creators (user_id, username, phone, location, arrival_location, min_price, max_price, 
+                                price_hairstyle_bride, price_hairstyle_bridesmaid, 
+                                price_makeup_bride, price_makeup_bridesmaid, price_hairstyle_makeup_combo,
+                                calendar_url, instagram_profile_picture, instagram_bio, profile_picture_local, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL, now())
             ON CONFLICT (user_id) DO UPDATE SET
                 username = EXCLUDED.username,
                 phone = EXCLUDED.phone,
                 location = EXCLUDED.location,
+                arrival_location = EXCLUDED.arrival_location,
                 min_price = EXCLUDED.min_price,
                 max_price = EXCLUDED.max_price,
+                price_hairstyle_bride = EXCLUDED.price_hairstyle_bride,
+                price_hairstyle_bridesmaid = EXCLUDED.price_hairstyle_bridesmaid,
+                price_makeup_bride = EXCLUDED.price_makeup_bride,
+                price_makeup_bridesmaid = EXCLUDED.price_makeup_bridesmaid,
+                price_hairstyle_makeup_combo = EXCLUDED.price_hairstyle_makeup_combo,
                 calendar_url = EXCLUDED.calendar_url,
                 instagram_profile_picture = EXCLUDED.instagram_profile_picture,
                 instagram_bio = EXCLUDED.instagram_bio,
                 profile_picture_local = NULL,
                 updated_at = now()
-        """, (user_id, username, phone, location, min_price, max_price, calendar_url,
+        """, (user_id, username, phone, location, arrival_location_array, min_price, max_price, 
+              price_hairstyle_bride, price_hairstyle_bridesmaid, 
+              price_makeup_bride, price_makeup_bridesmaid, price_hairstyle_makeup_combo,
+              calendar_url,
               instagram_data.get("profile_picture_url") if instagram_data else None,
               instagram_data.get("biography") if instagram_data else None))

@@ -163,3 +163,39 @@ export async function setDefaultImage(username, imageId, token) {
     throw error;
   }
 }
+
+// Get reviews for a creator
+export async function getReviews(creatorUsername) {
+  try {
+    const res = await fetch(`${API_BASE}/api/reviews/${creatorUsername}`);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to get reviews:', error);
+    throw error;
+  }
+}
+
+// Create a new review
+export async function createReview(reviewData, token) {
+  try {
+    const res = await fetch(`${API_BASE}/api/reviews`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(reviewData)
+    });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.detail || `HTTP ${res.status}: ${res.statusText}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to create review:', error);
+    throw error;
+  }
+}

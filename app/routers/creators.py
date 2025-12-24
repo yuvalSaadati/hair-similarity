@@ -38,6 +38,11 @@ def get_creators_with_display_images():
                     "location": getattr(creator, 'location', None),
                     "min_price": getattr(creator, 'min_price', None),
                     "max_price": getattr(creator, 'max_price', None),
+                    "price_hairstyle_bride": getattr(creator, 'price_hairstyle_bride', None),
+                    "price_hairstyle_bridesmaid": getattr(creator, 'price_hairstyle_bridesmaid', None),
+                    "price_makeup_bride": getattr(creator, 'price_makeup_bride', None),
+                    "price_makeup_bridesmaid": getattr(creator, 'price_makeup_bridesmaid', None),
+                    "price_hairstyle_makeup_combo": getattr(creator, 'price_hairstyle_makeup_combo', None),
                     "calendar_url": getattr(creator, 'calendar_url', None),
                     "profile_picture": getattr(creator, 'profile_picture', None),
                     "bio": getattr(creator, 'bio', None),
@@ -102,13 +107,38 @@ def upsert_my_creator(request: dict, current_user: dict = Depends(get_current_us
     username = request.get("username")
     phone = request.get("phone")
     location = request.get("location")
+    arrival_location = request.get("arrival_location")
     min_price = request.get("min_price")
     max_price = request.get("max_price")
+    price_hairstyle_bride = request.get("price_hairstyle_bride")
+    price_hairstyle_bridesmaid = request.get("price_hairstyle_bridesmaid")
+    price_makeup_bride = request.get("price_makeup_bride")
+    price_makeup_bridesmaid = request.get("price_makeup_bridesmaid")
+    price_hairstyle_makeup_combo = request.get("price_hairstyle_makeup_combo")
     calendar_url = request.get("calendar_url")
     ingest_limit = request.get("ingest_limit", 100)
     
     if not username:
         raise HTTPException(400, "Username is required")
+    
+    # Convert price strings to floats, handling empty strings
+    def parse_price(price_val):
+        if price_val is None:
+            return None
+        if isinstance(price_val, str) and not price_val.strip():
+            return None
+        try:
+            return float(price_val)
+        except (ValueError, TypeError):
+            return None
+    
+    min_price_float = parse_price(min_price)
+    max_price_float = parse_price(max_price)
+    price_hairstyle_bride_float = parse_price(price_hairstyle_bride)
+    price_hairstyle_bridesmaid_float = parse_price(price_hairstyle_bridesmaid)
+    price_makeup_bride_float = parse_price(price_makeup_bride)
+    price_makeup_bridesmaid_float = parse_price(price_makeup_bridesmaid)
+    price_hairstyle_makeup_combo_float = parse_price(price_hairstyle_makeup_combo)
     
     # Get Instagram profile data
     try:
@@ -127,8 +157,13 @@ def upsert_my_creator(request: dict, current_user: dict = Depends(get_current_us
     is_new_creator = existing_creator is None
     
     # Upsert creator
-    upsert_creator(current_user["id"], username, phone, location, min_price, max_price, 
-                   calendar_url, profile_data)
+    upsert_creator(current_user["id"], username, phone, location, arrival_location, min_price_float, max_price_float, 
+                   calendar_url, profile_data,
+                   price_hairstyle_bride=price_hairstyle_bride_float,
+                   price_hairstyle_bridesmaid=price_hairstyle_bridesmaid_float,
+                   price_makeup_bride=price_makeup_bride_float,
+                   price_makeup_bridesmaid=price_makeup_bridesmaid_float,
+                   price_hairstyle_makeup_combo=price_hairstyle_makeup_combo_float)
     
     # Only ingest images for NEW creators (on signup), not on updates
     if is_new_creator:

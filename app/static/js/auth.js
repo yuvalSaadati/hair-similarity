@@ -1,6 +1,6 @@
 // Authentication functions
 import { registerUser, loginUser, getMyCreator, updateCreatorProfile, getCreatorImages, setDefaultImage } from './api.js';
-import { toggleModal, updateFormField, getFormFieldValue, getSelectedValues, setSelectedValues, showNotification } from './ui.js';
+import { toggleModal, updateFormField, getFormFieldValue, getSelectedValues, setSelectedValues, getSelectedValuesFromCheckboxes, setSelectedValuesInCheckboxes, showNotification } from './ui.js';
 import { loadCreators } from './api.js';
 
 // Setup authentication event listeners
@@ -55,6 +55,65 @@ export function setupAuth() {
   if (creatorMgmtForm) {
     creatorMgmtForm.addEventListener('submit', handleUpdateCreatorProfile);
   }
+  
+  // Setup arrival location dropdowns
+  setupArrivalLocationDropdowns();
+}
+
+// Setup arrival location dropdowns (similar to region dropdown)
+function setupArrivalLocationDropdowns() {
+  // Sign-up form dropdown
+  setupArrivalLocationDropdown('signupArrivalLocationBtn', 'signupArrivalLocationMenu', 'signupArrivalLocationOptionsList', 'signupArrivalLocationLabel');
+  
+  // Management form dropdown
+  setupArrivalLocationDropdown('mgmtArrivalLocationBtn', 'mgmtArrivalLocationMenu', 'mgmtArrivalLocationOptionsList', 'mgmtArrivalLocationLabel');
+}
+
+function setupArrivalLocationDropdown(btnId, menuId, optionsListId, labelId) {
+  const btn = document.getElementById(btnId);
+  const menu = document.getElementById(menuId);
+  const options = document.querySelectorAll(`#${optionsListId} input[type="checkbox"]`);
+  
+  if (!btn || !menu) return;
+  
+  // Toggle dropdown
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menu.classList.toggle('open');
+  });
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!btn.contains(e.target) && !menu.contains(e.target)) {
+      menu.classList.remove('open');
+    }
+  });
+  
+  // Handle option selection
+  options.forEach(option => {
+    option.addEventListener('change', () => updateArrivalLocationSelection(optionsListId, labelId));
+  });
+  
+  // Update selection display
+  updateArrivalLocationSelection(optionsListId, labelId);
+}
+
+function updateArrivalLocationSelection(optionsListId, labelId) {
+  const selected = getSelectedValuesFromCheckboxes(optionsListId);
+  const label = document.getElementById(labelId);
+  
+  if (!label) return;
+  
+  if (selected.length === 0) {
+    label.textContent = 'בחרו מיקומי הגעה...';
+    label.classList.add('placeholder');
+  } else if (selected.length === 1) {
+    label.textContent = selected[0];
+    label.classList.remove('placeholder');
+  } else {
+    label.textContent = `${selected.length} מיקומים נבחרו`;
+    label.classList.remove('placeholder');
+  }
 }
 
 // Open sign up modal
@@ -83,12 +142,26 @@ export async function openCreatorManagementModal() {
     // Prefill form
     updateFormField('mgmt_username', creator.username || '');
     updateFormField('mgmt_phone', creator.phone || '');
-    updateFormField('mgmt_min_price', creator.min_price || '');
-    updateFormField('mgmt_max_price', creator.max_price || '');
+    updateFormField('mgmt_price_hairstyle_bride', creator.price_hairstyle_bride || '');
+    updateFormField('mgmt_price_hairstyle_bridesmaid', creator.price_hairstyle_bridesmaid || '');
+    updateFormField('mgmt_price_makeup_bride', creator.price_makeup_bride || '');
+    updateFormField('mgmt_price_makeup_bridesmaid', creator.price_makeup_bridesmaid || '');
+    updateFormField('mgmt_price_hairstyle_makeup_combo', creator.price_hairstyle_makeup_combo || '');
     
-    // Handle location multi-select
-    const locationValues = (creator.location || '').split(',').map(s => s.trim());
-    setSelectedValues('mgmt_location', locationValues);
+    // Handle location (single location - where creator is leaving from)
+    updateFormField('mgmt_location', creator.location || '');
+    
+    // Handle arrival location multi-select (array of locations creator can arrive to)
+    let arrivalLocationValues = [];
+    if (creator.arrival_location) {
+      if (Array.isArray(creator.arrival_location)) {
+        arrivalLocationValues = creator.arrival_location;
+      } else if (typeof creator.arrival_location === 'string') {
+        arrivalLocationValues = creator.arrival_location.split(',').map(s => s.trim());
+      }
+    }
+    setSelectedValuesInCheckboxes('mgmtArrivalLocationOptionsList', arrivalLocationValues);
+    updateArrivalLocationSelection('mgmtArrivalLocationOptionsList', 'mgmtArrivalLocationLabel');
     
     // Load creator images
     if (creator.username) {
@@ -110,8 +183,11 @@ async function handleSignUp(e) {
   const password = getFormFieldValue('signup_password');
   const username = getFormFieldValue('signup_username');
   const phone = getFormFieldValue('signup_phone');
-  const minPrice = getFormFieldValue('signup_min_price');
-  const maxPrice = getFormFieldValue('signup_max_price');
+  const priceHairstyleBride = getFormFieldValue('signup_price_hairstyle_bride');
+  const priceHairstyleBridesmaid = getFormFieldValue('signup_price_hairstyle_bridesmaid');
+  const priceMakeupBride = getFormFieldValue('signup_price_makeup_bride');
+  const priceMakeupBridesmaid = getFormFieldValue('signup_price_makeup_bridesmaid');
+  const priceHairstyleMakeupCombo = getFormFieldValue('signup_price_hairstyle_makeup_combo');
   
   if (!email || !password || !username) {
     showNotification('אימייל, סיסמה ושם משתמש באינסטגרם נדרשים', 'error');
@@ -130,15 +206,22 @@ async function handleSignUp(e) {
     localStorage.setItem('auth_token', registerData.token);
     
     // Create creator profile
-    const locationValues = getSelectedValues('signup_location');
-    const location = locationValues.join(',');
+    // Location is single value (where creator is leaving from)
+    const location = getFormFieldValue('signup_location');
+    // Arrival location is array (where creator can arrive to)
+    const arrivalLocationValues = getSelectedValuesFromCheckboxes('signupArrivalLocationOptionsList');
+    const arrivalLocation = arrivalLocationValues.join(',');
     
     const creatorData = {
       username: username,
       phone: phone,
       location: location,
-      min_price: minPrice || '',
-      max_price: maxPrice || '',
+      arrival_location: arrivalLocation,
+      price_hairstyle_bride: priceHairstyleBride || '',
+      price_hairstyle_bridesmaid: priceHairstyleBridesmaid || '',
+      price_makeup_bride: priceMakeupBride || '',
+      price_makeup_bridesmaid: priceMakeupBridesmaid || '',
+      price_hairstyle_makeup_combo: priceHairstyleMakeupCombo || '',
       ingest_limit: 100
     };
     
@@ -237,23 +320,33 @@ async function handleUpdateCreatorProfile(e) {
   
   const username = getFormFieldValue('mgmt_username');
   const phone = getFormFieldValue('mgmt_phone');
-  const minPrice = getFormFieldValue('mgmt_min_price');
-  const maxPrice = getFormFieldValue('mgmt_max_price');
+  const priceHairstyleBride = getFormFieldValue('mgmt_price_hairstyle_bride');
+  const priceHairstyleBridesmaid = getFormFieldValue('mgmt_price_hairstyle_bridesmaid');
+  const priceMakeupBride = getFormFieldValue('mgmt_price_makeup_bride');
+  const priceMakeupBridesmaid = getFormFieldValue('mgmt_price_makeup_bridesmaid');
+  const priceHairstyleMakeupCombo = getFormFieldValue('mgmt_price_hairstyle_makeup_combo');
   
   if (!username) {
     showNotification('שם משתמש באינסטגרם נדרש', 'error');
     return;
   }
   
-  const locationValues = getSelectedValues('mgmt_location');
-  const location = locationValues.join(',');
+  // Location is single value (where creator is leaving from)
+  const location = getFormFieldValue('mgmt_location');
+  // Arrival location is array (where creator can arrive to)
+  const arrivalLocationValues = getSelectedValuesFromCheckboxes('mgmtArrivalLocationOptionsList');
+  const arrivalLocation = arrivalLocationValues.join(',');
   
   const creatorData = {
     username: username,
     phone: phone,
     location: location,
-    min_price: minPrice || '',
-    max_price: maxPrice || ''
+    arrival_location: arrivalLocation,
+    price_hairstyle_bride: priceHairstyleBride || '',
+    price_hairstyle_bridesmaid: priceHairstyleBridesmaid || '',
+    price_makeup_bride: priceMakeupBride || '',
+    price_makeup_bridesmaid: priceMakeupBridesmaid || '',
+    price_hairstyle_makeup_combo: priceHairstyleMakeupCombo || ''
   };
   
   try {

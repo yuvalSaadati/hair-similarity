@@ -44,12 +44,19 @@ class CreatorResponse(BaseModel):
     username: str
     phone: Optional[str] = None
     location: Optional[str] = None
+    arrival_location: Optional[str] = None
     min_price: Optional[float] = None
     max_price: Optional[float] = None
+    price_hairstyle_bride: Optional[float] = None
+    price_hairstyle_bridesmaid: Optional[float] = None
+    price_makeup_bride: Optional[float] = None
+    price_makeup_bridesmaid: Optional[float] = None
+    price_hairstyle_makeup_combo: Optional[float] = None
     calendar_url: Optional[str] = None
     profile_picture: Optional[str] = None
     bio: Optional[str] = None
     post_count: int = 0
+    review_count: int = 0
     sample_image: Optional[str] = None
     sample_image_id: Optional[str] = None
     profile_url: Optional[str] = None

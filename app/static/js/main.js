@@ -3,6 +3,7 @@ import { loadCreators, loadRandomPhotos } from './api.js';
 import { setupFilters } from './filters.js';
 import { setupAuth } from './auth.js';
 import { initializeImageDisplay } from './image-display.js';
+import { setupReviewsForm } from './creators.js';
 
 // Global variables
 let allCreators = [];
@@ -21,6 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupFilters();
     setupAuth();
     initializeImageDisplay();
+    setupReviewsForm();
     
     console.log('✅ App initialized successfully');
   } catch (error) {

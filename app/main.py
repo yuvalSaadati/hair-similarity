@@ -7,7 +7,7 @@ from pgvector.psycopg import register_vector
 from app.config import MEDIA_IMAGES_DIR, MEDIA_AVATARS_DIR
 from app.db import conn
 from app.database import setup_database_schema
-from app.routers import auth, creators, search, me, display
+from app.routers import auth, creators, search, me, display, reviews
 from app.image_proxy import create_image_proxy_endpoint
 from app.calendar_oauth import router as cal_router
 
@@ -64,6 +64,7 @@ app.include_router(creators.router)
 app.include_router(me.router)
 app.include_router(search.router)
 app.include_router(display.router)
+app.include_router(reviews.router)
 app.include_router(create_image_proxy_endpoint())
 app.include_router(cal_router)
 
