@@ -64,9 +64,3 @@ async def search_by_upload_by_creator(file: UploadFile = File(...), limit: int =
         print(f"Error in search_by_upload_by_creator: {traceback.format_exc()}")
         raise HTTPException(500, f"Error processing image: {str(e)}")
 
-
-@router.get("/random-photos")
-def get_random_photos_endpoint(limit: int = 12, keywords: Optional[str] = None):
-    """Get random photos, optionally filtered by keywords"""
-    photos = get_random_photos(limit, keywords)
-    return {"photos": photos}

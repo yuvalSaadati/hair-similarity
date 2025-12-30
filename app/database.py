@@ -68,8 +68,23 @@ def setup_database_schema():
             google_refresh_token TEXT,
             google_access_token TEXT,
             google_token_expiry TIMESTAMPTZ,
-            sample_image_id UUID
+            sample_image_id UUID,
+            recent_image TEXT,
+            display_image TEXT
         );
+        """)
+        
+        # Add recent_image column if it doesn't exist (for existing databases)
+        cur.execute("""
+            DO $$ 
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'creators' AND column_name = 'recent_image'
+                ) THEN
+                    ALTER TABLE creators ADD COLUMN recent_image TEXT;
+                END IF;
+            END $$;
         """)
         
         # Images table - embedding is REQUIRED (NOT NULL) stored as JSONB (array of floats)
@@ -229,6 +244,7 @@ def get_creators() -> List[CreatorResponse]:
                 c.profile_picture_local,
                 c.instagram_profile_picture,
                 c.instagram_bio,
+                c.recent_image,
                 c.updated_at,
                 (
                   SELECT COUNT(*)
@@ -306,10 +322,11 @@ def get_creators() -> List[CreatorResponse]:
             calendar_url=r[11],
             profile_picture=profile_picture_url,
             bio=r[14],
-            post_count=int(r[16]) if r[16] is not None else 0,
-            review_count=int(r[17]) if r[17] is not None else 0,
-            sample_image=r[18] if r[18] is not None else None,
-            sample_image_id=str(r[19]) if r[19] else None,
+            recent_image=r[15] if r[15] is not None else None,
+            post_count=int(r[17]) if r[17] is not None else 0,  # post_count is at index 17 (after updated_at at 16)
+            review_count=int(r[18]) if r[18] is not None else 0,  # review_count is at index 18
+            sample_image=r[19] if r[19] is not None else None,  # sample_image is at index 19
+            sample_image_id=str(r[20]) if r[20] else None,  # sample_image_id is at index 20
             profile_url=f"https://instagram.com/{r[0]}" if r[0] else None,
         ))
     
@@ -584,7 +601,8 @@ def upsert_creator(user_id: str, username: str, phone: Optional[str] = None,
                    price_hairstyle_bridesmaid: Optional[float] = None,
                    price_makeup_bride: Optional[float] = None,
                    price_makeup_bridesmaid: Optional[float] = None,
-                   price_hairstyle_makeup_combo: Optional[float] = None):
+                   price_hairstyle_makeup_combo: Optional[float] = None,
+                   recent_image: Optional[str] = None):
     """Create or update creator profile"""
     # Convert arrival_location string (comma-separated) to array
     arrival_location_array = None
@@ -599,8 +617,8 @@ def upsert_creator(user_id: str, username: str, phone: Optional[str] = None,
             INSERT INTO creators (user_id, username, phone, location, arrival_location, min_price, max_price, 
                                 price_hairstyle_bride, price_hairstyle_bridesmaid, 
                                 price_makeup_bride, price_makeup_bridesmaid, price_hairstyle_makeup_combo,
-                                calendar_url, instagram_profile_picture, instagram_bio, profile_picture_local, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL, now())
+                                calendar_url, instagram_profile_picture, instagram_bio, profile_picture_local, recent_image, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL, %s, now())
             ON CONFLICT (user_id) DO UPDATE SET
                 username = EXCLUDED.username,
                 phone = EXCLUDED.phone,
@@ -617,10 +635,12 @@ def upsert_creator(user_id: str, username: str, phone: Optional[str] = None,
                 instagram_profile_picture = EXCLUDED.instagram_profile_picture,
                 instagram_bio = EXCLUDED.instagram_bio,
                 profile_picture_local = NULL,
+                recent_image = EXCLUDED.recent_image,
                 updated_at = now()
         """, (user_id, username, phone, location, arrival_location_array, min_price, max_price, 
               price_hairstyle_bride, price_hairstyle_bridesmaid, 
               price_makeup_bride, price_makeup_bridesmaid, price_hairstyle_makeup_combo,
               calendar_url,
               instagram_data.get("profile_picture_url") if instagram_data else None,
-              instagram_data.get("biography") if instagram_data else None))
+              instagram_data.get("biography") if instagram_data else None,
+              recent_image))

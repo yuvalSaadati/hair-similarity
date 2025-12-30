@@ -4,7 +4,7 @@ import json
 from typing import Dict, List, Optional
 from PIL import Image
 import io
-from app.config import IG_ACCESS_TOKEN, IG_APP_ID, IG_APP_SECRET, IG_USER_ID, MEDIA_AVATARS_DIR
+from app.config import IG_ACCESS_TOKEN, IG_USER_ID
 
 def make_instagram_request(url, params=None):
     """Make an Instagram API request with current token"""

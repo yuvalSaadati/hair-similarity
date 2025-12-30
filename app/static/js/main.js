@@ -1,5 +1,5 @@
 // Main application initialization
-import { loadCreators, loadRandomPhotos } from './api.js';
+import { loadCreators } from './api.js';
 import { setupFilters } from './filters.js';
 import { setupAuth } from './auth.js';
 import { initializeImageDisplay } from './image-display.js';
@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   try {
     // Load initial data
-    // await loadRandomPhotos();
     await loadCreators();
     
     // Setup UI components

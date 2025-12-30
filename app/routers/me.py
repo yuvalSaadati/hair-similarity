@@ -2,10 +2,8 @@ from fastapi import APIRouter, HTTPException, Query, Depends, BackgroundTasks
 from typing import List, Optional
 from app.auth import get_current_user
 from app.database import get_creator_by_user_id, upsert_creator
-from app.instagram import ig_get_creator_profile, ig_get_recent_media_by_creator, ig_expand_media_to_images
-from app.image_processing import fetch_and_embed_image, insert_image_row, is_hair_related_caption
-from app.db import conn
-import uuid
+from app.instagram import ig_get_creator_profile, ig_get_most_recent_image
+from app.routers.creators import ingest_instagram_creators
 
 router = APIRouter(prefix="/api/me", tags=["me"])
 
@@ -73,6 +71,17 @@ def upsert_my_creator(current_user: dict = Depends(get_current_user),
     price_makeup_bridesmaid_float = parse_price(price_makeup_bridesmaid)
     price_hairstyle_makeup_combo_float = parse_price(price_hairstyle_makeup_combo)
     
+    # Get most recent image from Instagram
+    recent_image_url = None
+    if IG_ACCESS_TOKEN and IG_USER_ID:
+        try:
+            recent_image = ig_get_most_recent_image(username)
+            if recent_image and recent_image.get("media_url"):
+                recent_image_url = recent_image["media_url"]
+        except Exception as e:
+            print(f"Failed to get recent image for {username}: {e}")
+            # Continue without recent_image if it fails
+    
     # Check if creator already exists (to determine if this is a new signup)
     existing_creator = get_creator_by_user_id(current_user["id"])
     is_new_creator = existing_creator is None
@@ -84,7 +93,8 @@ def upsert_my_creator(current_user: dict = Depends(get_current_user),
                    price_hairstyle_bridesmaid=price_hairstyle_bridesmaid_float,
                    price_makeup_bride=price_makeup_bride_float,
                    price_makeup_bridesmaid=price_makeup_bridesmaid_float,
-                   price_hairstyle_makeup_combo=price_hairstyle_makeup_combo_float)
+                   price_hairstyle_makeup_combo=price_hairstyle_makeup_combo_float,
+                   recent_image=recent_image_url)
     
     # Only ingest images for NEW creators (on signup), not on updates
     if is_new_creator:
@@ -98,62 +108,3 @@ def upsert_my_creator(current_user: dict = Depends(get_current_user),
         print(f"Skipping image ingestion - creator {username} already exists (update, not signup)")
     
     return {"status": "ok", "scheduled_ingest_for": username if is_new_creator else None, "limit": ingest_limit, "is_new_creator": is_new_creator}
-
-def ingest_instagram_creators(usernames: List[str], limit_per_user: int = 20):
-    """Background task to ingest Instagram content for creators"""
-    added = 0
-    skipped = 0
-    errors = []
-    
-    for uname in usernames:
-        try:
-            # Get recent media
-            media_items = ig_get_recent_media_by_creator(uname, limit_per_user)
-            
-            # Expand all media to individual images
-            images = ig_expand_media_to_images(media_items)
-            
-            for im in images:
-                    url = im["media_url"]
-                    image_uuid = uuid.uuid4()
-                    caption = im.get("caption", "")
-                    try:
-                        # Generate embedding from temporary media URL
-                        # The embedding is stored in DB for similarity search
-                        # The image itself will be fetched on-demand using media_id via proxy
-                        from app.image_processing import embed_image_from_url
-                        img, embedding, (w, h), proxy_url = embed_image_from_url(url, im["id"])
-                        
-                        # Insert image row with embedding and media_id
-                        # The embedding enables similarity search
-                        # The media_id enables fetching image from Instagram on-demand
-                        image_id = insert_image_row(
-                            source="instagram",
-                            source_id=im["id"],
-                            url=im.get("permalink", url),
-                            hashtags=[f"@{uname}"],  # Store as @username in hashtags
-                            width=w,
-                            height=h,
-                            embedding=embedding,  # Stored for similarity search
-                            caption=caption,  # Already extracted from im.get("caption", "") on line 97
-                            media_id=im["id"],  # Used to fetch image on-demand via /api/images/{media_id}/proxy
-                            creator_username=uname,  # Store creator username for efficient filtering
-                            media_type=im.get("media_type"),  # IMAGE, CAROUSEL_ALBUM, or VIDEO
-                            media_url=im.get("media_url")  # Temporary CDN URL (different from permalink)
-                        )
-                        
-                        added += 1
-                        
-                    except Exception as e:
-                        print(f"Failed to process image {url}: {e}")
-            
-            # Note: Sample image update should be done separately with user context
-            # This function runs in background without current_user
-                        
-        except Exception as e:
-            print(f"Failed to ingest for {uname}: {e}")
-            errors.append(f"{uname}: {str(e)}")
-            skipped += 1
-    
-    print(f"Ingest complete: {added} added, {skipped} skipped, {len(errors)} errors")
-    return {"added": added, "skipped": skipped, "errors": errors}

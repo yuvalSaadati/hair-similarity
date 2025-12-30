@@ -6,7 +6,6 @@ from typing import Tuple, Optional
 from PIL import Image
 import torch
 import clip
-from app.config import MEDIA_IMAGES_DIR, MEDIA_AVATARS_DIR
 from app.db import conn
 
 # CLIP model will be loaded lazily
@@ -29,38 +28,7 @@ def image_to_embedding(img: Image.Image) -> torch.Tensor:
         image_features = image_features / image_features.norm(dim=-1, keepdim=True)
     return image_features[0]
 
-def fetch_and_embed_image(url: str, image_id: uuid.UUID) -> Tuple[Image.Image, torch.Tensor, Tuple[int, int], str]:
-    """Fetch image from URL and return embedding (no local storage)"""
-    r = requests.get(url, timeout=20)
-    r.raise_for_status()
-    img = Image.open(io.BytesIO(r.content))
-    
-    emb = image_to_embedding(img)
-    # Return proxy URL instead of local URL
-    proxy_url = f"/api/images/{image_id}/proxy"
-    return img, emb, img.size, proxy_url
 
-def fetch_and_embed_instagram_image(media_id: str, source_id: str) -> Tuple[Image.Image, torch.Tensor, Tuple[int, int], str]:
-    """Fetch Instagram image by media ID, generate embedding, return proxy URL"""
-    from app.image_proxy import fetch_instagram_image_by_id
-    
-    # Fetch image from Instagram
-    result = fetch_instagram_image_by_id(media_id)
-    if not result:
-        raise Exception(f"Failed to fetch Instagram image {media_id}")
-    
-    img, original_url = result
-    
-    # Get dimensions
-    width, height = img.size
-    
-    # Generate embedding
-    embedding = image_to_embedding(img)
-    
-    # Return proxy URL instead of local file
-    proxy_url = f"/api/images/{media_id}/proxy"
-    
-    return img, embedding, (width, height), proxy_url
 
 def embed_image_from_url(media_url: str, media_id: str) -> Tuple[Image.Image, torch.Tensor, Tuple[int, int], str]:
     """
@@ -89,13 +57,8 @@ def embed_image_from_url(media_url: str, media_id: str) -> Tuple[Image.Image, to
         
         # Generate embedding (this is what we store in DB for similarity search)
         embedding = image_to_embedding(img)
-        
-        # Return proxy URL that will fetch image by media_id when needed
-        # The proxy endpoint uses fetch_instagram_image_by_id() which gets
-        # a fresh URL from Instagram Graph API using the media_id
-        proxy_url = f"/api/images/{media_id}/proxy"
-        
-        return img, embedding, (width, height), proxy_url
+             
+        return img, embedding, (width, height)
         
     except Exception as e:
         raise Exception(f"Failed to process image from URL {media_url}: {e}")
@@ -222,49 +185,3 @@ def is_hair_related_caption(caption: str) -> bool:
     
     caption_lower = caption.lower()
     return any(keyword in caption_lower for keyword in hair_keywords)
-
-def generate_embedding_on_demand(media_id: str) -> Optional[torch.Tensor]:
-    """
-    Generate embedding for an image on-demand when needed for similarity search
-    
-    Args:
-        media_id: Instagram media ID
-    
-    Returns:
-        CLIP embedding tensor or None if failed
-    """
-    try:
-        from app.image_proxy import fetch_instagram_image_by_id
-        
-        # Fetch image from Instagram
-        result = fetch_instagram_image_by_id(media_id)
-        if not result:
-            return None
-        
-        img, _ = result
-        
-        # Generate embedding
-        embedding = image_to_embedding(img)
-        
-        # Update database with embedding and dimensions
-        import json
-        with conn.cursor() as cur:
-            # Convert tensor to JSONB (array of floats)
-            if hasattr(embedding, 'is_cuda') and embedding.is_cuda:
-                embedding_list = embedding.detach().cpu().numpy().tolist()
-            else:
-                embedding_list = embedding.detach().numpy().tolist() if hasattr(embedding, 'detach') else embedding.tolist()
-            
-            embedding_json = json.dumps(embedding_list)
-            
-            cur.execute("""
-                UPDATE images 
-                SET embedding = %s, width = %s, height = %s
-                WHERE media_id = %s
-            """, (embedding_json, img.width, img.height, media_id))
-        
-        return embedding
-        
-    except Exception as e:
-        print(f"Failed to generate embedding for {media_id}: {e}")
-        return None

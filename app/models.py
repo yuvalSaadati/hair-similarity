@@ -60,3 +60,4 @@ class CreatorResponse(BaseModel):
     sample_image: Optional[str] = None
     sample_image_id: Optional[str] = None
     profile_url: Optional[str] = None
+    recent_image: Optional[str] = None

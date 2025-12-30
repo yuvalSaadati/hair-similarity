@@ -1,7 +1,5 @@
 // Filter and search functions
-import { searchByUploadByCreator } from './api.js';
 import { filterCreators, sortCreators, displayCreators } from './creators.js';
-import { showLoading } from './ui.js';
 import { handleSimilaritySearch, handleClearFilters } from './image-display.js';
 
 // Setup filter functionality
@@ -102,58 +100,6 @@ function setupStyleMatch() {
     if (e.target.files.length > 0) {
       const file = e.target.files[0];
       handleSimilaritySearch(file);
-    }
-  });
-}
-
-// Handle style match file upload
-async function handleStyleMatchFile(input) {
-  const file = input.files[0];
-  if (!file) return;
-  
-  try {
-    showLoading('creatorsList', 'מחפש התאמות...');
-    
-    // Search for similar images
-    const matches = await searchByUploadByCreator(file);
-    
-    if (matches && matches.length > 0) {
-      // Update creator cards with best matches
-      updateCreatorCardsWithMatches(matches);
-      showNotification(`נמצאו ${matches.length} התאמות`, 'success');
-    } else {
-      showNotification('לא נמצאו התאמות', 'warning');
-    }
-  } catch (error) {
-    console.error('Style match failed:', error);
-    showNotification('שגיאה בחיפוש התאמות', 'error');
-  } finally {
-    // Clear the file input
-    input.value = '';
-  }
-}
-
-// Update creator cards with style match results
-function updateCreatorCardsWithMatches(matches) {
-  const cards = document.querySelectorAll('.creator-card');
-  
-  cards.forEach(card => {
-    const usernameElement = card.querySelector('[data-creator-username]');
-    if (!usernameElement) return;
-    
-    const username = usernameElement.getAttribute('data-creator-username');
-    
-    // Find best match for this creator
-    const creatorMatches = matches.filter(match => 
-      match.caption && match.caption.includes(`@${username}`)
-    );
-    
-    if (creatorMatches.length > 0) {
-      const best = creatorMatches[0]; // Assuming first is best
-      const headerImg = card.querySelector('img[data-role="header"]');
-      if (headerImg && best.url) {
-        headerImg.src = best.local_url || best.url;
-      }
     }
   });
 }

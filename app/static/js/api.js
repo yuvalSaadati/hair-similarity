@@ -4,16 +4,7 @@ import { displayCreators } from './creators.js';
 
 const API_BASE = '';
 
-// Load random photos
-export async function loadRandomPhotos() {
-  try {
-    const res = await fetch(`${API_BASE}/search/random-photos?limit=12`);
-    const data = await res.json();
-    displayPhotos(data.photos, 'randomPhotos');
-  } catch (error) {
-    console.error('Failed to load random photos:', error);
-  }
-}
+
 
 // Load creators
 export async function loadCreators() {
@@ -24,16 +15,7 @@ export async function loadCreators() {
     window.allCreators = data.creators;
     displayCreators(data.creators);
   } catch (error) {
-    console.error('Failed to load creators:', error);
-    // Fallback to basic endpoint if with-display-images fails
-    try {
-      const res = await fetch(`${API_BASE}/api/creators`);
-      const data = await res.json();
-      window.allCreators = data.creators;
-      displayCreators(data.creators);
-    } catch (fallbackError) {
-      console.error('Failed to load creators (fallback):', fallbackError);
-    }
+    console.error('Failed to load creators:', error);   
   }
 }
 

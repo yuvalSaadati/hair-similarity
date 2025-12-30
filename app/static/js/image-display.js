@@ -31,30 +31,6 @@ export async function loadCreatorsWithDisplayImages() {
 }
 
 /**
- * Get similar image for a creator based on query image
- */
-export async function getCreatorSimilarImage(username, queryImageFile) {
-    try {
-        const formData = new FormData();
-        formData.append('file', queryImageFile);
-        
-        const response = await fetch(`${API_BASE}/api/display/creator/${username}/similar-image`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        return await response.json();
-    } catch (error) {
-        console.error(`Failed to get similar image for ${username}:`, error);
-        throw error;
-    }
-}
-
-/**
  * Set display mode and update all creator cards
  */
 export async function setDisplayMode(mode, queryImageFile = null) {

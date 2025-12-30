@@ -202,7 +202,6 @@ See `access token.ipynb` for detailed token generation instructions.
 
 ### Display
 - `GET /api/display/creator/{username}/image` - Get creator display image
-- `POST /api/display/creator/{username}/similar-image` - Get similar image for creator
 
 ## Project Structure
 

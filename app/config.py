@@ -17,7 +17,3 @@ IG_REDIRECT_URI = os.getenv("IG_REDIRECT_URI", "http://localhost:8000/auth/callb
 # Database Configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres")
 
-# Media Directories
-MEDIA_ROOT = os.path.join(os.path.dirname(__file__), 'media')
-MEDIA_IMAGES_DIR = os.path.join(MEDIA_ROOT, 'images')
-MEDIA_AVATARS_DIR = os.path.join(MEDIA_ROOT, 'avatars')

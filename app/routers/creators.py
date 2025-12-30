@@ -2,9 +2,8 @@ from fastapi import APIRouter, HTTPException, Query, Depends, BackgroundTasks
 from typing import List, Optional
 from app.auth import get_current_user
 from app.database import get_creators, get_creator_by_user_id, upsert_creator
-from app.image_display_manager import get_creator_display_image
-from app.instagram import ig_get_creator_profile, ig_get_recent_media_by_creator, ig_expand_media_to_images
-from app.image_processing import fetch_and_embed_image, insert_image_row, is_hair_related_caption
+from app.instagram import ig_get_creator_profile, ig_get_recent_media_by_creator, ig_expand_media_to_images, ig_get_most_recent_image
+from app.image_processing import  insert_image_row, is_hair_related_caption
 from app.db import conn
 import uuid
 
@@ -50,38 +49,11 @@ def get_creators_with_display_images():
                     "sample_image": getattr(creator, 'sample_image', None),
                     "sample_image_id": getattr(creator, 'sample_image_id', None),
                     "profile_url": getattr(creator, 'profile_url', None),
+                    "recent_image": getattr(creator, 'recent_image', None),
                 }
+
             
-            username = creator_dict.get("username")
-            if username:
-                # Fetch profile picture from Instagram API (fresher than database)
-                from app.instagram import ig_get_creator_profile, ig_get_most_recent_image
-                
-                # Get profile picture from Instagram API (keep database value as fallback)
-                try:
-                    profile_data = ig_get_creator_profile(username)
-                    if profile_data.get("profile_picture_url"):
-                        creator_dict["profile_picture"] = profile_data["profile_picture_url"]
-                except Exception as e:
-                    print(f"Failed to get profile picture for {username}: {e}")
-                    # Keep the profile_picture from database as fallback
-                
-                # Try to get most recent Instagram image from API (fresher than database)
-                try:
-                    recent_image = ig_get_most_recent_image(username)
-                    creator_dict["display_image"] = recent_image["media_url"]
-                    # Use proxy URL for recent image from Instagram API
-                    creator_dict["recent_image"] = recent_image["media_url"]
-                except Exception as e:
-                    print(f"Failed to get display image for {username}: {e}")
-                    import traceback
-                    print(traceback.format_exc())
-                    creator_dict["display_image"] = None
-                    creator_dict["recent_image"] = None
-            else:
-                creator_dict["display_image"] = None
-                creator_dict["recent_image"] = None
-            
+                       
             creators_with_images.append(creator_dict)
         
         return {"creators": creators_with_images}
@@ -151,6 +123,16 @@ def upsert_my_creator(request: dict, current_user: dict = Depends(get_current_us
     if not is_hair_related_caption(bio) and not is_hair_related_caption(username):
         raise HTTPException(400, "Creator profile must contain hair-related content")
     
+    # Get most recent image from Instagram
+    recent_image_url = None
+    try:
+        recent_image = ig_get_most_recent_image(username)
+        if recent_image and recent_image.get("media_url"):
+            recent_image_url = recent_image["media_url"]
+    except Exception as e:
+        print(f"Failed to get recent image for {username}: {e}")
+        # Continue without recent_image if it fails
+    
     # Check if creator already exists (to determine if this is a new signup)
     from app.database import get_creator_by_user_id
     existing_creator = get_creator_by_user_id(current_user["id"])
@@ -163,7 +145,8 @@ def upsert_my_creator(request: dict, current_user: dict = Depends(get_current_us
                    price_hairstyle_bridesmaid=price_hairstyle_bridesmaid_float,
                    price_makeup_bride=price_makeup_bride_float,
                    price_makeup_bridesmaid=price_makeup_bridesmaid_float,
-                   price_hairstyle_makeup_combo=price_hairstyle_makeup_combo_float)
+                   price_hairstyle_makeup_combo=price_hairstyle_makeup_combo_float,
+                   recent_image=recent_image_url)
     
     # Only ingest images for NEW creators (on signup), not on updates
     if is_new_creator:
@@ -237,7 +220,7 @@ def set_default_image(username: str, image_data: dict, current_user: dict = Depe
     
     return {"status": "ok", "message": "Default image updated"}
 
-def ingest_instagram_creators(usernames: List[str], limit_per_user: int = 100):
+def ingest_instagram_creators(usernames: List[str], limit_per_user: int = 20):
     """Background task to ingest Instagram content for creators"""
     added = 0
     skipped = 0
@@ -252,27 +235,52 @@ def ingest_instagram_creators(usernames: List[str], limit_per_user: int = 100):
             images = ig_expand_media_to_images(media_items)
             
             for im in images:
-                    url = im["media_url"]
-                    image_uuid = uuid.uuid4()
-                    
-                    try:
-                        caption = im.get("caption") or ""
-                        if not is_hair_related_caption(caption):
-                            skipped += 1
-                            continue
-                            
-                        from app.image_processing import embed_image_from_url
-                        img, emb, (w, h), proxy_url = embed_image_from_url(url, im["id"])
-                        insert_image_row("instagram", im["id"], im.get("permalink", url),
-                                       [f"@{uname}"], w, h, emb, caption=caption, media_id=im["id"], creator_username=uname, media_type=im.get("media_type"))
-                        added += 1
-                    except Exception as e:
+                url = im["media_url"]
+                caption = im.get("caption") or ""
+                
+                try:
+                    # Filter by hair-related content
+                    if not is_hair_related_caption(caption):
                         skipped += 1
-                        errors.append(str(e))
+                        continue
+                    
+                    # Generate embedding from temporary media URL
+                    # The embedding is stored in DB for similarity search
+                    # The image itself will be fetched on-demand using media_id via proxy
+                    from app.image_processing import embed_image_from_url
+                    img, embedding, (w, h) = embed_image_from_url(url, im["id"])
+                    
+                    # Insert image row with embedding and media_id
+                    # The embedding enables similarity search
+                    # The media_id enables fetching image from Instagram on-demand
+                    insert_image_row(
+                        source="instagram",
+                        source_id=im["id"],
+                        url=im.get("permalink", url),
+                        hashtags=[f"@{uname}"],  # Store as @username in hashtags
+                        width=w,
+                        height=h,
+                        embedding=embedding,  # Stored for similarity search
+                        caption=caption,
+                        media_id=im["id"],  # Used to fetch image on-demand via /api/images/{media_id}/proxy
+                        creator_username=uname,  # Store creator username for efficient filtering
+                        media_type=im.get("media_type"),  # IMAGE, CAROUSEL_ALBUM, or VIDEO
+                        media_url=im.get("media_url")  # Temporary CDN URL (different from permalink)
+                    )
+                    
+                    added += 1
+                    
+                except Exception as e:
+                    skipped += 1
+                    errors.append(str(e))
+                    print(f"Failed to process image {url}: {e}")
                         
         except Exception as e:
             errors.append(f"Failed to ingest {uname}: {str(e)}")
+            print(f"Failed to ingest for {uname}: {e}")
     
     print(f"Ingest complete: {added} added, {skipped} skipped, {len(errors)} errors")
     if errors:
         print("Errors:", errors)
+    
+    return {"added": added, "skipped": skipped, "errors": errors}
