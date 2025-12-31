@@ -98,6 +98,20 @@ function setupArrivalLocationDropdown(btnId, menuId, optionsListId, labelId) {
   updateArrivalLocationSelection(optionsListId, labelId);
 }
 
+// Map English location values to Hebrew labels
+function getLocationHebrewLabel(englishValue) {
+  const locationMap = {
+    'North': 'צפון',
+    'Haifa': 'חיפה',
+    'Center': 'מרכז',
+    'Tel Aviv': 'תל אביב',
+    'Sharon': 'שרון',
+    'Jerusalem': 'ירושלים',
+    'South': 'דרום'
+  };
+  return locationMap[englishValue] || englishValue;
+}
+
 function updateArrivalLocationSelection(optionsListId, labelId) {
   const selected = getSelectedValuesFromCheckboxes(optionsListId);
   const label = document.getElementById(labelId);
@@ -108,7 +122,8 @@ function updateArrivalLocationSelection(optionsListId, labelId) {
     label.textContent = 'בחרו מיקומי הגעה...';
     label.classList.add('placeholder');
   } else if (selected.length === 1) {
-    label.textContent = selected[0];
+    // Display Hebrew label instead of English value
+    label.textContent = getLocationHebrewLabel(selected[0]);
     label.classList.remove('placeholder');
   } else {
     label.textContent = `${selected.length} מיקומים נבחרו`;

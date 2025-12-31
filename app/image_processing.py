@@ -14,6 +14,7 @@ model = None
 preprocess = None
 
 def get_clip_model():
+    """Initialize CLIP model (lazy loading)"""
     global model, preprocess
     if model is None:
         model, preprocess = clip.load("ViT-B/32", device=device)
@@ -30,25 +31,34 @@ def image_to_embedding(img: Image.Image) -> torch.Tensor:
 
 
 
-def embed_image_from_url(media_url: str, media_id: str) -> Tuple[Image.Image, torch.Tensor, Tuple[int, int], str]:
+def embed_image_from_url(media_url: str, media_id: str, media_type: Optional[str] = None) -> Tuple[Image.Image, torch.Tensor, Tuple[int, int], str]:
     """
     Generate embedding from existing media URL (temporary URL)
     
     This function:
-    1. Fetches image from temporary URL
+    1. Fetches image from temporary URL (for videos, thumbnail_url is already set as media_url)
     2. Generates embedding (stored in DB for similarity search)
     3. Returns proxy URL that uses media_id to fetch on-demand
     
     The image itself is NOT saved locally - it will be fetched from Instagram
     using media_id when needed via the proxy endpoint.
+    
+    Note: For videos, the thumbnail_url is already set as media_url in ig_expand_media_to_images,
+    so this function just treats it as a regular image.
+    
+    Args:
+        media_url: URL to the image or video thumbnail
+        media_id: Instagram media ID
+        media_type: Optional media type ("IMAGE", "VIDEO", "CAROUSEL_ALBUM")
     """
     try:
-        # Fetch image directly from the provided URL (temporary CDN URL)
+        # Fetch image directly from the provided URL (for videos, this is already the thumbnail_url)
         response = requests.get(media_url, timeout=30)
         response.raise_for_status()
         
         # Convert to PIL Image
         img = Image.open(io.BytesIO(response.content))
+        
         if img.mode != 'RGB':
             img = img.convert('RGB')
         

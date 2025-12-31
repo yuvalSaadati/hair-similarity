@@ -220,7 +220,7 @@ def set_default_image(username: str, image_data: dict, current_user: dict = Depe
     
     return {"status": "ok", "message": "Default image updated"}
 
-def ingest_instagram_creators(usernames: List[str], limit_per_user: int = 20):
+def ingest_instagram_creators(usernames: List[str], limit_per_user: int = 30):
     """Background task to ingest Instagram content for creators"""
     added = 0
     skipped = 0
@@ -240,15 +240,15 @@ def ingest_instagram_creators(usernames: List[str], limit_per_user: int = 20):
                 
                 try:
                     # Filter by hair-related content
-                    if not is_hair_related_caption(caption):
-                        skipped += 1
-                        continue
+                    # if not is_hair_related_caption(caption):
+                    #     skipped += 1
+                    #     continue
                     
                     # Generate embedding from temporary media URL
                     # The embedding is stored in DB for similarity search
                     # The image itself will be fetched on-demand using media_id via proxy
                     from app.image_processing import embed_image_from_url
-                    img, embedding, (w, h) = embed_image_from_url(url, im["id"])
+                    img, embedding, (w, h) = embed_image_from_url(url, im["id"], im.get("media_type"))
                     
                     # Insert image row with embedding and media_id
                     # The embedding enables similarity search
