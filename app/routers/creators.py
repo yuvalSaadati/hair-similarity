@@ -240,9 +240,9 @@ def ingest_instagram_creators(usernames: List[str], limit_per_user: int = 30):
                 
                 try:
                     # Filter by hair-related content
-                    # if not is_hair_related_caption(caption):
-                    #     skipped += 1
-                    #     continue
+                    if not is_hair_related_caption(caption):
+                        skipped += 1
+                        continue
                     
                     # Generate embedding from temporary media URL
                     # The embedding is stored in DB for similarity search

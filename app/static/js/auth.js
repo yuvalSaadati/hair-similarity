@@ -178,11 +178,6 @@ export async function openCreatorManagementModal() {
     setSelectedValuesInCheckboxes('mgmtArrivalLocationOptionsList', arrivalLocationValues);
     updateArrivalLocationSelection('mgmtArrivalLocationOptionsList', 'mgmtArrivalLocationLabel');
     
-    // Load creator images
-    if (creator.username) {
-      await loadCreatorImages(creator.username);
-    }
-    
     toggleModal('creatorManagementModal', true);
   } catch (error) {
     console.error('Failed to load creator data:', error);
@@ -285,14 +280,15 @@ async function loadCreatorImages(username) {
     
     data.images.forEach(img => {
       const imgDiv = document.createElement('div');
-      imgDiv.style.cssText = 'position: relative; cursor: pointer; border-radius: 8px; overflow: hidden;';
-      imgDiv.addEventListener('click', () => handleSetDefaultImage(img.id, username));
+      imgDiv.style.cssText = 'position: relative; border-radius: 8px; overflow: hidden;';
       
       const imgEl = document.createElement('img');
       imgEl.src = img.local_url || img.url;
-      imgEl.style.cssText = 'width: 100%; height: 120px; object-fit: cover;';
+      imgEl.style.cssText = 'width: 100%; height: 120px; object-fit: cover; cursor: pointer;';
       imgEl.onerror = () => { imgDiv.style.display = 'none'; };
+      imgEl.addEventListener('click', () => handleSetDefaultImage(img.id, username));
       
+      // Overlay for "Set as default" action
       const overlay = document.createElement('div');
       overlay.style.cssText = 'position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; opacity: 0; transition: opacity 0.2s;';
       overlay.textContent = 'לחץ לבחירה';

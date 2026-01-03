@@ -14,8 +14,12 @@ export async function loadCreators() {
     const data = await res.json();
     window.allCreators = data.creators;
     displayCreators(data.creators);
+    
+    // Return success
+    return true;
   } catch (error) {
-    console.error('Failed to load creators:', error);   
+    console.error('Failed to load creators:', error);
+    throw error;
   }
 }
 

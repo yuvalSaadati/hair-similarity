@@ -12,12 +12,207 @@
   
   <!-- Styles -->
   <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    /* Ensure preloader is visible immediately */
+    #preloader {
+      display: flex !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+    /* Prevent preloader from being hidden - FOR TESTING */
+    #preloader.hidden {
+      display: flex !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+    /* Hide body content until loaded */
+    body:not(.loaded) > *:not(#preloader) {
+      opacity: 0;
+    }
+    /* Even if body has loaded class, keep preloader visible - FOR TESTING */
+    body.loaded #preloader {
+      display: flex !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+  </style>
 </head>
 <body>
+  <!-- Preloader -->
+  <div id="preloader" class="preloader" style="display: flex !important; opacity: 1 !important; visibility: visible !important; z-index: 10000 !important;">
+    <div class="preloader-content">
+      <div class="preloader-animation">
+        <svg viewBox="0 0 300 350" xmlns="http://www.w3.org/2000/svg" class="bride-preloader">
+          <!-- Background decorative elements -->
+          <circle cx="50" cy="50" r="3" fill="#ffd700" opacity="0.6" class="sparkle sparkle-1"/>
+          <circle cx="250" cy="80" r="2.5" fill="#ffd700" opacity="0.6" class="sparkle sparkle-2"/>
+          <circle cx="80" cy="300" r="2" fill="#ffd700" opacity="0.6" class="sparkle sparkle-3"/>
+          <circle cx="220" cy="320" r="2.5" fill="#ffd700" opacity="0.6" class="sparkle sparkle-4"/>
+          
+          <!-- Beautiful loose flowing hair -->
+          <g class="hair-loose">
+            <!-- Base hair shape - voluminous and flowing -->
+            <path d="M 70 100 Q 60 45 85 35 Q 110 25 150 30 Q 190 25 215 35 Q 240 45 230 100 Q 225 130 220 150 Q 215 170 210 190 Q 205 210 200 230 Q 195 250 185 270 L 115 270 Q 105 250 100 230 Q 95 210 90 190 Q 85 170 80 150 Q 75 130 70 100 Z" fill="#8b4513" class="hair-base"/>
+            
+            <!-- Left side beautiful flowing strands -->
+            <path d="M 85 100 Q 80 130 83 160 Q 78 190 85 220 Q 82 250 88 280" 
+                  stroke="#654321" stroke-width="6" fill="none" stroke-linecap="round" class="hair-strand strand-1"/>
+            <path d="M 95 95 Q 90 125 93 155 Q 88 185 95 215 Q 92 245 98 275" 
+                  stroke="#654321" stroke-width="6" fill="none" stroke-linecap="round" class="hair-strand strand-2"/>
+            <path d="M 105 100 Q 100 130 103 160 Q 98 190 105 220 Q 102 250 108 280" 
+                  stroke="#654321" stroke-width="6" fill="none" stroke-linecap="round" class="hair-strand strand-3"/>
+            <path d="M 115 98 Q 110 128 113 158 Q 108 188 115 218 Q 112 248 118 278" 
+                  stroke="#654321" stroke-width="5" fill="none" stroke-linecap="round" class="hair-strand strand-4"/>
+            <path d="M 125 96 Q 120 126 123 156 Q 118 186 125 216 Q 122 246 128 276" 
+                  stroke="#654321" stroke-width="5" fill="none" stroke-linecap="round" class="hair-strand strand-5"/>
+            
+            <!-- Center beautiful flowing strands -->
+            <path d="M 135 94 Q 130 124 133 154 Q 128 184 135 214 Q 132 244 138 274" 
+                  stroke="#654321" stroke-width="6" fill="none" stroke-linecap="round" class="hair-strand strand-6"/>
+            <path d="M 145 92 Q 140 122 143 152 Q 138 182 145 212 Q 142 242 148 272" 
+                  stroke="#654321" stroke-width="7" fill="none" stroke-linecap="round" class="hair-strand strand-7"/>
+            <path d="M 155 90 Q 150 120 153 150 Q 148 180 155 210 Q 152 240 158 270" 
+                  stroke="#654321" stroke-width="7" fill="none" stroke-linecap="round" class="hair-strand strand-8"/>
+            <path d="M 165 92 Q 160 122 163 152 Q 158 182 165 212 Q 162 242 168 272" 
+                  stroke="#654321" stroke-width="6" fill="none" stroke-linecap="round" class="hair-strand strand-9"/>
+            <path d="M 175 94 Q 170 124 173 154 Q 168 184 175 214 Q 172 244 178 274" 
+                  stroke="#654321" stroke-width="6" fill="none" stroke-linecap="round" class="hair-strand strand-10"/>
+            
+            <!-- Right side beautiful flowing strands -->
+            <path d="M 185 96 Q 180 126 183 156 Q 178 186 185 216 Q 182 246 188 276" 
+                  stroke="#654321" stroke-width="5" fill="none" stroke-linecap="round" class="hair-strand strand-11"/>
+            <path d="M 195 98 Q 190 128 193 158 Q 188 188 195 218 Q 192 248 198 278" 
+                  stroke="#654321" stroke-width="5" fill="none" stroke-linecap="round" class="hair-strand strand-12"/>
+            <path d="M 205 100 Q 200 130 203 160 Q 198 190 205 220 Q 202 250 208 280" 
+                  stroke="#654321" stroke-width="6" fill="none" stroke-linecap="round" class="hair-strand strand-13"/>
+            <path d="M 215 95 Q 210 125 213 155 Q 208 185 215 215 Q 212 245 218 275" 
+                  stroke="#654321" stroke-width="6" fill="none" stroke-linecap="round" class="hair-strand strand-14"/>
+            
+            <!-- Additional voluminous flowing strands for beauty -->
+            <path d="M 90 105 Q 87 135 90 165 Q 85 195 92 225" 
+                  stroke="#5c3a21" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.8" class="hair-strand strand-15"/>
+            <path d="M 100 103 Q 97 133 100 163 Q 95 193 102 223" 
+                  stroke="#5c3a21" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.8" class="hair-strand strand-16"/>
+            <path d="M 150 105 Q 147 135 150 165 Q 145 195 152 225" 
+                  stroke="#5c3a21" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.8" class="hair-strand strand-17"/>
+            <path d="M 160 103 Q 157 133 160 163 Q 155 193 162 223" 
+                  stroke="#5c3a21" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.8" class="hair-strand strand-18"/>
+            <path d="M 210 105 Q 207 135 210 165 Q 205 195 212 225" 
+                  stroke="#5c3a21" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.8" class="hair-strand strand-19"/>
+            <path d="M 200 103 Q 197 133 200 163 Q 195 193 202 223" 
+                  stroke="#5c3a21" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.8" class="hair-strand strand-20"/>
+            
+            <!-- Beautiful hair highlights and shine -->
+            <path d="M 110 110 Q 150 105 190 110" stroke="#daa520" stroke-width="3" fill="none" opacity="0.6" class="hair-shine"/>
+            <path d="M 115 150 Q 150 145 185 150" stroke="#cd853f" stroke-width="2.5" fill="none" opacity="0.5" class="hair-shine"/>
+            <path d="M 120 190 Q 150 185 180 190" stroke="#d4a574" stroke-width="2" fill="none" opacity="0.4" class="hair-shine"/>
+            <path d="M 125 230 Q 150 225 175 230" stroke="#f0e68c" stroke-width="1.5" fill="none" opacity="0.3" class="hair-shine"/>
+          </g>
+          
+          <!-- Veil/Tiara -->
+          <g class="veil-tiara">
+            <!-- Tiara -->
+            <path d="M 120 50 Q 150 45 180 50" stroke="#ffd700" stroke-width="2" fill="none" class="tiara"/>
+            <circle cx="150" cy="45" r="2" fill="#ffd700" class="tiara-gem"/>
+            <circle cx="130" cy="48" r="1.5" fill="#ffd700" class="tiara-gem"/>
+            <circle cx="170" cy="48" r="1.5" fill="#ffd700" class="tiara-gem"/>
+            <!-- Veil -->
+            <path d="M 100 100 Q 150 120 200 100 L 200 200 Q 150 180 100 200 Z" fill="rgba(255,255,255,0.3)" class="veil"/>
+          </g>
+          
+          <!-- Face -->
+          <ellipse cx="150" cy="160" rx="50" ry="55" fill="#fdbcb4" class="face"/>
+          
+          <!-- Neck -->
+          <ellipse cx="150" cy="220" rx="25" ry="30" fill="#fdbcb4"/>
+          
+          <!-- Shoulders/Dress top -->
+          <path d="M 100 250 Q 150 240 200 250 L 200 280 Q 150 270 100 280 Z" fill="#fff5f5" class="dress-top"/>
+          
+          <!-- Eyes with makeup -->
+          <g class="eyes">
+            <!-- Left eye -->
+            <ellipse cx="130" cy="150" rx="12" ry="10" fill="#fff" class="eye"/>
+            <circle cx="132" cy="150" r="7" fill="#4a4a4a" class="pupil"/>
+            <circle cx="133" cy="149" r="3" fill="#000" class="iris"/>
+            <circle cx="134" cy="148" r="1.5" fill="#fff" class="highlight"/>
+            <!-- Eyelashes -->
+            <path d="M 118 145 Q 120 143 122 145" stroke="#333" stroke-width="1.5" fill="none" class="eyelash"/>
+            <path d="M 120 147 Q 122 145 124 147" stroke="#333" stroke-width="1.5" fill="none" class="eyelash"/>
+            <path d="M 122 149 Q 124 147 126 149" stroke="#333" stroke-width="1.5" fill="none" class="eyelash"/>
+            
+            <!-- Right eye -->
+            <ellipse cx="170" cy="150" rx="12" ry="10" fill="#fff" class="eye"/>
+            <circle cx="168" cy="150" r="7" fill="#4a4a4a" class="pupil"/>
+            <circle cx="167" cy="149" r="3" fill="#000" class="iris"/>
+            <circle cx="166" cy="148" r="1.5" fill="#fff" class="highlight"/>
+            <!-- Eyelashes -->
+            <path d="M 182 145 Q 180 143 178 145" stroke="#333" stroke-width="1.5" fill="none" class="eyelash"/>
+            <path d="M 180 147 Q 178 145 176 147" stroke="#333" stroke-width="1.5" fill="none" class="eyelash"/>
+            <path d="M 178 149 Q 176 147 174 149" stroke="#333" stroke-width="1.5" fill="none" class="eyelash"/>
+          </g>
+          
+          <!-- Eyebrows -->
+          <path d="M 115 140 Q 130 138 145 140" stroke="#8b4513" stroke-width="2" fill="none" stroke-linecap="round" class="eyebrow"/>
+          <path d="M 155 140 Q 170 138 185 140" stroke="#8b4513" stroke-width="2" fill="none" stroke-linecap="round" class="eyebrow"/>
+          
+          <!-- Blush/Cheeks -->
+          <ellipse cx="110" cy="175" rx="10" ry="8" fill="#ffb3ba" opacity="0.5" class="blush"/>
+          <ellipse cx="190" cy="175" rx="10" ry="8" fill="#ffb3ba" opacity="0.5" class="blush"/>
+          
+          <!-- Nose -->
+          <ellipse cx="150" cy="170" rx="3" ry="5" fill="#fdbcb4" opacity="0.5"/>
+          
+          <!-- Lips (bridal lipstick) -->
+          <path d="M 135 190 Q 150 195 165 190" stroke="#d81b60" stroke-width="4" fill="none" stroke-linecap="round" class="lips"/>
+          <path d="M 135 190 Q 150 193 165 190" stroke="#ff69b4" stroke-width="2" fill="none" stroke-linecap="round" class="lips-gloss"/>
+          
+          <!-- Makeup brush (applying foundation/blush) -->
+          <g class="makeup-brush">
+            <rect x="220" y="160" width="30" height="5" rx="2.5" fill="#d4af37" transform="rotate(35 235 162.5)" class="brush-handle"/>
+            <rect x="240" y="150" width="10" height="15" rx="3" fill="#8b7355" class="brush-body"/>
+            <circle cx="245" cy="142" r="4" fill="#ffb3ba" class="brush-tip"/>
+            <!-- Brush particles -->
+            <circle cx="200" cy="175" r="1.5" fill="#ffb3ba" opacity="0.6" class="particle particle-1"/>
+            <circle cx="205" cy="170" r="1" fill="#ffb3ba" opacity="0.5" class="particle particle-2"/>
+            <circle cx="195" cy="180" r="1.2" fill="#ffb3ba" opacity="0.4" class="particle particle-3"/>
+          </g>
+          
+          <!-- Hair styling brush (curling/styling) -->
+          <g class="hair-brush">
+            <rect x="50" y="120" width="25" height="4" rx="2" fill="#d4af37" transform="rotate(-25 62.5 122)" class="brush-handle"/>
+            <rect x="45" y="110" width="8" height="15" rx="2" fill="#8b7355" class="brush-body"/>
+            <!-- Brush bristles -->
+            <line x1="49" y1="105" x2="49" y2="110" stroke="#8b7355" stroke-width="1.5" class="bristle"/>
+            <line x1="51" y1="105" x2="51" y2="110" stroke="#8b7355" stroke-width="1.5" class="bristle"/>
+            <line x1="53" y1="105" x2="53" y2="110" stroke="#8b7355" stroke-width="1.5" class="bristle"/>
+            <!-- Hair styling particles -->
+            <circle cx="70" cy="100" r="1.5" fill="#d4a574" opacity="0.5" class="hair-particle particle-4"/>
+            <circle cx="75" cy="95" r="1" fill="#d4a574" opacity="0.4" class="hair-particle particle-5"/>
+          </g>
+          
+          <!-- Eyeliner brush (applying eye makeup) -->
+          <g class="eyeliner-brush">
+            <rect x="220" y="130" width="25" height="3" rx="1.5" fill="#d4af37" transform="rotate(-20 232.5 131.5)" class="brush-handle"/>
+            <rect x="235" y="120" width="7" height="12" rx="2" fill="#8b7355" class="brush-body"/>
+            <circle cx="238" cy="115" r="2.5" fill="#4a4a4a" class="brush-tip"/>
+          </g>
+        </svg>
+      </div>
+      <p class="preloader-text">טוען את המסרקות והמאפרות המובילות...</p>
+      <div class="preloader-dots">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </div>
+  
   <!-- Header -->
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; max-width: 100%; padding: 0 16px;">
-    <div style="display: flex; gap: 12px;">
-      <button id="signUpBtn" class="btn-secondary">הרשמה</button>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <button id="signInBtn" class="btn-secondary">כניסה</button>
+      <button id="signUpBtn" class="btn-signup">הרשמה</button>
     </div>
     <h1 style="margin: 0; text-align: center; flex: 1; font-size: 24px; line-height: 1.4;">מצאי את המסרקת והמאפרת המושלמות לאירוע שלך<br><span style="font-size: 18px; font-weight: 400; color: #6b7280;">התאמה מדויקת עם טכנולוגיית AI מתקדמת • מאות מסרקות ומאפרות מובילות במקום אחד</span></h1>
     <div style="width: 200px;"></div> <!-- Spacer for balance -->
@@ -41,20 +236,20 @@
           </button>
           <div id="regionDropdownMenu" class="region-menu" role="listbox" aria-multiselectable="true">
             <div id="regionOptionsList" class="region-list">
-              <label class="region-item"><input type="checkbox" value="North"/> מחוז הצפון</label>
-              <label class="region-item"><input type="checkbox" value="Haifa"/> מחוז חיפה</label>
-              <label class="region-item"><input type="checkbox" value="Center"/> מחוז המרכז</label>
-              <label class="region-item"><input type="checkbox" value="Tel Aviv"/> מחוז תל אביב</label>
+              <label class="region-item"><input type="checkbox" value="North"/>  צפון</label>
+              <label class="region-item"><input type="checkbox" value="Haifa"/>  חיפה</label>
+              <label class="region-item"><input type="checkbox" value="Center"/>  מרכז</label>
+              <label class="region-item"><input type="checkbox" value="Tel Aviv"/>  תל אביב</label>
               <label class="region-item"><input type="checkbox" value="Sharon">שרון</label>
-              <label class="region-item"><input type="checkbox" value="Jerusalem"/> מחוז ירושלים</label>
-              <label class="region-item"><input type="checkbox" value="South"/> מחוז הדרום</label>
+              <label class="region-item"><input type="checkbox" value="Jerusalem"/>  ירושלים</label>
+              <label class="region-item"><input type="checkbox" value="South"/>  הדרום</label>
             </div>
           </div>
         </div>
       </div>
       
       <div class="filter-group price-slider">
-        <label class="filter-label" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <label class="filter-label" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; height: 24px;">
           <span style="display: flex; align-items: center; gap: 8px;">
             <svg class="filter-icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
@@ -78,12 +273,12 @@
         <input type="date" id="filterDate" class="filter-input" placeholder="בחרו תאריך" disabled>
       </div>
       
-      <div class="filter-group" style="display: flex; flex-direction: row; gap: 12px; align-items: end;">
-        <button class="match-btn" id="styleMatchBtn" style="flex: 1;">
+      <div class="filter-group button-group" style="display: flex; flex-direction: column; gap: 12px; align-items: stretch; width: 100%;">
+        <button class="match-btn" id="styleMatchBtn">
           <span style="display:inline-block;transform: translateY(2px);">✨</span>
           התאמת סגנון
         </button>
-        <button class="clear-filters-btn" id="clearFiltersBtn" style="flex: 1;">איפוס סינונים</button>
+        <button class="clear-filters-btn" id="clearFiltersBtn">איפוס סינונים</button>
         <input id="styleMatchFile" type="file" accept="image/*" style="display:none" />
       </div>
     </div>
@@ -248,15 +443,15 @@
 
   <!-- Creator Management Modal -->
   <div id="creatorManagementModal" class="modal">
-    <div class="modal-card" style="width: 90%; max-width: 1000px;">
+    <div class="modal-card">
       <button class="modal-close">×</button>
       <div class="modal-header">
         <h2 class="modal-title">ניהול פרופיל יוצר/ת</h2>
-        <p class="modal-subtitle">עדכנו את הפרטים שלכם ובחרו תמונה ראשית</p>
+        <p class="modal-subtitle">עדכנו את הפרטים שלכם</p>
       </div>
       <form id="creatorMgmtForm" class="modal-body">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-          <!-- Left side - Creator details form -->
+        <div>
+          <!-- Creator details form -->
           <div>
             <h3 style="margin-bottom: 16px; color: #333;">פרטי יוצר/ת</h3>
             <div class="form-group">
@@ -363,17 +558,9 @@
                 </svg>
                 שם משתמש באינסטגרם
               </label>
-              <input id="mgmt_username" class="form-input" type="text" placeholder="@שם_משתמש" required />
+              <input id="mgmt_username" class="form-input" type="text" placeholder="@שם_משתמש" required disabled />
             </div>
             <button type="submit" class="btn-primary" style="width: 100%; margin-top: 16px;">עדכן פרופיל</button>
-          </div>
-          
-          <!-- Right side - Image gallery -->
-          <div>
-            <h3 style="margin-bottom: 16px; color: #333;">בחרו תמונה ראשית</h3>
-            <div id="creatorImagesGallery" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; max-height: 400px; overflow-y: auto;">
-              <!-- Images will be loaded here -->
-            </div>
           </div>
         </div>
       </form>

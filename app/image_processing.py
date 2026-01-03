@@ -180,18 +180,90 @@ def insert_image_row(source: str, source_id: Optional[str], url: str,
         )
 
 def is_hair_related_caption(caption: str) -> bool:
-    """Check if caption contains hair-related keywords"""
+    """Check if caption contains hair or makeup-related keywords"""
     if not caption:
         return False
     
-    hair_keywords = [
-        'hair', 'updo', 'half-up', 'ponytail', 'bun', 'braid', 'braids', 
-        'waves', 'curls', 'curly', 'straight', 'sleek', 'bob', 'lob', 
-        'pixie', 'shag', 'layers', 'fringe', 'bangs', 'wolf cut', 'fade', 
-        'skin fade', 'שיער', 'תסרוקת', 'פן', 'עיצוב', 'מעצב', 'אסוף', 
-        'חצי-אסוף', 'קוקו', 'קוקס', 'צמה', 'צמות', 'גלים', 'תלתלים', 
-        'חלק', 'כלה', 'wedding', 'bridal', 'bride', 'תלתלים'
+    caption_lower = caption.lower()
+    
+    # Hair-related keywords (English)
+    hair_keywords_en = [
+        'hair', 'hairstyle', 'hairstyles', 'hairstylist', 'hairstyling', 
+        'hairdesign', 'hairdesigner', 'hairartist', 'hairart', 'hairgoals',
+        'hairinspo', 'hairinspiration', 'hairmagic', 'hairtransformation',
+        'updo', 'updohair', 'upstyle', 'half-up', 'ponytail', 'bun', 
+        'braid', 'braids', 'braidedhair', 'waves', 'curls', 'curly', 
+        'curlyhair', 'curlybride', 'curlyhairstyle', 'curlinspo',
+        'straight', 'sleek', 'bob', 'lob', 'pixie', 'shag', 'layers', 
+        'fringe', 'bangs', 'wolf cut', 'fade', 'skin fade',
+        'bridalhair', 'bridalhairstyle', 'bridalhairstylist', 'bridalstylist',
+        'weddinghair', 'weddinghairstyle', 'weddinghairstylist', 'bridehair',
+        'bridehairstyle', 'bridesmaid', 'glamhair', 'softglamhair',
+        'romanticupdo', 'editorialhair', 'fashionhair', 'luxuryhair',
+        'beautyhair', 'hairtutorial', 'haircare', 'hairideas', 'hairtrends'
     ]
     
-    caption_lower = caption.lower()
-    return any(keyword in caption_lower for keyword in hair_keywords)
+    # Makeup-related keywords (English)
+    makeup_keywords_en = [
+        'makeup', 'make-up', 'makeupartist', 'makeupforbride', 
+        'bridalmakeup', 'weddingmakeup', 'bridalmakeuplook', 
+        'makeupideas', 'makeupinspiration', 'beautymakeup',
+        'glammakeup', 'editorialmakeup', 'fashionmakeup'
+    ]
+    
+    # Hair-related keywords (Hebrew)
+    hair_keywords_he = [
+        'שיער', 'תסרוקת', 'תסרוקות', 'תסרוקותכלה', 'תסרוקותכלות',
+        'שיערכלה', 'שיערכלות', 'שיערלחתונה', 'שיערחתונה',
+        'עיצובשיער', 'עיצובשיערכלה', 'עיצובשיערמקצועי',
+        'מעצבתשיער', 'מעצבשיער', 'מעצבתשיערכלה',
+        'תלתלים', 'תלתליםזהאופי', 'מתולתלות', 'תלתליםוואו',
+        'גלים', 'שיערגלי', 'שיערמתולתלות',
+        'אסוף', 'חצי-אסוף', 'קוקו', 'קוקס', 'צמה', 'צמות',
+        'חלק', 'החלקה', 'תספורת', 'גזירה',
+        'כלה', 'כלות', 'כלה2025', 'כלותישראל', 'כלהמאושרת',
+        'מלווה', 'תסרוקתמלווה',
+        'חתונה', 'אירוע', 'אירועים', 'אירועיוקרה',
+        'דיפיוזר', 'ג\'ל', 'מוס', 'קרםלחות', 'מסכה',
+        'נפח', 'תנועה', 'עמידות', 'קלילות', 'קופצניות'
+    ]
+    
+    # Makeup-related keywords (Hebrew)
+    makeup_keywords_he = [
+        'איפור', 'איפורכלה', 'איפורמלווה', 'מאפרת', 'מאפר',
+        'איפורושיער', 'איפורעדין', 'איפורזוהר', 'איפורטבעי'
+    ]
+    
+    # Wedding/event keywords (both languages)
+    event_keywords = [
+        'wedding', 'bridal', 'bride', 'bridesmaid', 'groom',
+        'חתונה', 'כלה', 'כלות', 'מלווה', 'חתן'
+    ]
+    
+    # Combine all keywords
+    all_keywords = hair_keywords_en + makeup_keywords_en + hair_keywords_he + makeup_keywords_he + event_keywords
+    
+    # Method 1: Check if any keyword appears in caption (substring match)
+    if any(keyword in caption_lower for keyword in all_keywords):
+        return True
+    
+    # Method 2: Split caption into words and check if words match or contain keywords
+    # Split by whitespace and common separators, handling both English and Hebrew
+    import re
+    # Split on whitespace, punctuation, but keep Hebrew characters together
+    # This regex splits on spaces, punctuation, but preserves Hebrew words
+    words = re.findall(r'[\u0590-\u05FF]+|[a-zA-Z0-9]+', caption_lower)
+    
+    for word in words:
+        word_lower = word.lower()
+        # Check if word exactly matches a keyword
+        if word_lower in all_keywords:
+            return True
+        # Check if any keyword is contained in the word
+        if any(keyword in word_lower for keyword in all_keywords):
+            return True
+        # Check if word is contained in any keyword (for partial matches)
+        if any(word_lower in keyword for keyword in all_keywords):
+            return True
+    
+    return False

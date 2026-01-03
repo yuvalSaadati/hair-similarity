@@ -1,6 +1,6 @@
 // Filter and search functions
 import { filterCreators, sortCreators, displayCreators } from './creators.js';
-import { handleSimilaritySearch, handleClearFilters } from './image-display.js';
+import { handleSimilaritySearch, handleClearFilters, getSimilarityDataForCreator } from './image-display.js';
 
 // Setup filter functionality
 export function setupFilters() {
@@ -156,8 +156,21 @@ function filterCreatorsAndDisplay() {
   // Filter creators
   const filtered = filterCreators(window.allCreators, filters);
   
+  // Merge similarity data if it exists (from image similarity search)
+  // This ensures similarity images persist in the background even when filtering by price/location
+  const creatorsWithSimilarity = filtered.map(creator => {
+    const similarityData = getSimilarityDataForCreator(creator.username);
+    if (similarityData) {
+      return {
+        ...creator,
+        ...similarityData
+      };
+    }
+    return creator;
+  });
+  
   // Sort creators (default: recent)
-  const sorted = sortCreators(filtered, 'recent');
+  const sorted = sortCreators(creatorsWithSimilarity, 'recent');
   
   // Display results
   displayCreators(sorted);
