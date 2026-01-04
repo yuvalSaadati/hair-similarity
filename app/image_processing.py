@@ -82,7 +82,7 @@ def insert_image_row(source: str, source_id: Optional[str], url: str,
     Insert image data into database
     
     Stores:
-    - embedding: For similarity search (REQUIRED - must be provided)
+    - embedding: For similarity search (REQUIRED - must be provided) as VECTOR type
     - media_id: To fetch image from Instagram on-demand via proxy
     - url: Original permalink (for reference)
     - creator_username: Creator's username (for efficient filtering and grouping)
@@ -93,6 +93,7 @@ def insert_image_row(source: str, source_id: Optional[str], url: str,
     
     Args:
         embedding: REQUIRED torch.Tensor - CLIP embedding vector (512 dimensions)
+                   Will be stored as pgvector VECTOR(512) type
     """
     if embedding is None:
         raise ValueError("embedding is required and cannot be None")
@@ -145,21 +146,33 @@ def insert_image_row(source: str, source_id: Optional[str], url: str,
                     creator_username = tag[1:]  # Remove @
                     break
         
-        # Convert embedding tensor to JSONB (array of floats) - REQUIRED
-        import json
+        # Convert embedding tensor to numpy array for pgvector VECTOR type
+        import numpy as np
         try:
-            # Convert tensor to list of floats
+            # Convert tensor to numpy array
             if hasattr(embedding, 'is_cuda') and embedding.is_cuda:
-                embedding_list = embedding.detach().cpu().numpy().tolist()
+                embedding_np = embedding.detach().cpu().numpy()
+            elif hasattr(embedding, 'detach'):
+                embedding_np = embedding.detach().numpy()
+            elif hasattr(embedding, 'cpu'):
+                embedding_np = embedding.cpu().numpy()
+            elif not isinstance(embedding, np.ndarray):
+                embedding_np = np.array(embedding)
             else:
-                embedding_list = embedding.detach().numpy().tolist() if hasattr(embedding, 'detach') else embedding.tolist()
+                embedding_np = embedding
             
-            # Store as JSONB (array of floats) - this is the "tensor" format
-            embedding_value = json.dumps(embedding_list)
+            # Ensure it's 1D and float32
+            if len(embedding_np.shape) > 1:
+                embedding_np = embedding_np.flatten()
+            embedding_np = embedding_np.astype(np.float32)
+            
+            # Convert to list for pgvector (it will handle the conversion to VECTOR type)
+            embedding_value = embedding_np.tolist()
         except Exception as e:
-            raise ValueError(f"Failed to convert embedding to JSON: {e}. Embedding is required.")
+            raise ValueError(f"Failed to convert embedding to array: {e}. Embedding is required.")
         
-        # Insert with embedding (required)
+        # Insert with embedding (required) - pgvector will convert the list to VECTOR type automatically
+        # The list is passed directly and pgvector (registered in db.py) handles the conversion
         cur.execute(
             """
             INSERT INTO images (id, source, source_id, url, hashtags, width, height, embedding, caption, media_id, creator_username, media_type, media_url)

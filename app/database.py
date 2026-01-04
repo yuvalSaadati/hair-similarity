@@ -87,32 +87,74 @@ def setup_database_schema():
             END $$;
         """)
         
-        # Images table - embedding is REQUIRED (NOT NULL) stored as JSONB (array of floats)
-        # This stores the tensor/embedding as a JSON array, no pgvector needed
-        cur.execute("""
-        CREATE TABLE IF NOT EXISTS images (
-            id UUID PRIMARY KEY,
-            source TEXT NOT NULL,
-            source_id TEXT,
-            url TEXT,
-            hashtags TEXT[] DEFAULT '{}',
-            width INT,
-            height INT,
-            created_at TIMESTAMPTZ DEFAULT now(),
-            embedding JSONB NOT NULL,
-            caption TEXT,
-            media_id TEXT,
-            UNIQUE(source, source_id)
-        );
-        """)
+        # Images table - embedding is REQUIRED (NOT NULL) stored as VECTOR(512) using pgvector
+        # Check if vector extension exists
+        cur.execute("SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector');")
+        has_vector = cur.fetchone()[0]
         
-        # Create GIN index on embedding for faster queries
-        cur.execute("""
-        CREATE INDEX IF NOT EXISTS idx_images_embedding_gin 
-        ON images USING GIN (embedding);
-        """)
+        if not has_vector:
+            # Try to create vector extension
+            try:
+                cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+                has_vector = True
+            except Exception as e:
+                print(f"⚠️  Warning: Could not create vector extension: {e}")
+                print("   Falling back to JSONB storage. Install pgvector for better performance.")
+                has_vector = False
         
-        print("✅ Created images table with JSONB embedding column (stores tensor as array of floats)")
+        if has_vector:
+            # Use VECTOR type with pgvector
+            cur.execute("""
+            CREATE TABLE IF NOT EXISTS images (
+                id UUID PRIMARY KEY,
+                source TEXT NOT NULL,
+                source_id TEXT,
+                url TEXT,
+                hashtags TEXT[] DEFAULT '{}',
+                width INT,
+                height INT,
+                created_at TIMESTAMPTZ DEFAULT now(),
+                embedding VECTOR(512) NOT NULL,
+                caption TEXT,
+                media_id TEXT,
+                UNIQUE(source, source_id)
+            );
+            """)
+            
+            # Create IVFFlat index for fast similarity search (cosine distance)
+            cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_images_embedding 
+            ON images USING ivfflat (embedding vector_cosine_ops)
+            WITH (lists = 100);
+            """)
+            
+            print("✅ Created images table with VECTOR(512) embedding column (pgvector)")
+        else:
+            # Fallback to JSONB if pgvector is not available
+            cur.execute("""
+            CREATE TABLE IF NOT EXISTS images (
+                id UUID PRIMARY KEY,
+                source TEXT NOT NULL,
+                source_id TEXT,
+                url TEXT,
+                hashtags TEXT[] DEFAULT '{}',
+                width INT,
+                height INT,
+                created_at TIMESTAMPTZ DEFAULT now(),
+                embedding JSONB NOT NULL,
+                caption TEXT,
+                media_id TEXT,
+                UNIQUE(source, source_id)
+            );
+            """)
+            
+            # Create GIN index on embedding for faster queries
+            cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_images_embedding_gin 
+            ON images USING GIN (embedding);
+            """)
+            
+            print("✅ Created images table with JSONB embedding column (fallback mode)")
         
         # Reviews/Comments table
         cur.execute("""
@@ -374,9 +416,8 @@ def get_random_photos(limit: int = 12, keywords: Optional[str] = None) -> List[D
     ]
 
 def search_similar_images(embedding, limit: int = 12) -> List[Dict]:
-    """Search for similar images using cosine similarity"""
+    """Search for similar images using pgvector cosine distance"""
     import numpy as np
-    import json
     
     # Convert PyTorch tensor to numpy array
     if hasattr(embedding, 'detach'):
@@ -388,9 +429,10 @@ def search_similar_images(embedding, limit: int = 12) -> List[Dict]:
     else:
         embedding_np = embedding
     
-    # Ensure it's 1D
+    # Ensure it's 1D and float32
     if len(embedding_np.shape) > 1:
         embedding_np = embedding_np.flatten()
+    embedding_np = embedding_np.astype(np.float32)
     
     # Normalize the query embedding
     query_norm = np.linalg.norm(embedding_np)
@@ -398,59 +440,96 @@ def search_similar_images(embedding, limit: int = 12) -> List[Dict]:
         return []
     embedding_np = embedding_np / query_norm
     
+    # Convert to list for pgvector
+    embedding_list = embedding_np.tolist()
+    
     with conn.cursor() as cur:
-        # Get all images with embeddings
-        cur.execute("""
-            SELECT id,
-                   CASE 
-                       WHEN media_id IS NOT NULL THEN CONCAT('/api/images/', media_id, '/proxy')
-                       ELSE url
-                   END as image_url,
-                   caption,
-                   embedding
-            FROM images
-            WHERE embedding IS NOT NULL
-        """)
-        rows = cur.fetchall()
-    
-    # Calculate cosine similarity for each image
-    similarities = []
-    for row in rows:
-        try:
-            # Parse JSONB embedding (array of floats)
-            emb_json = row[3]
-            if isinstance(emb_json, str):
-                emb_array = json.loads(emb_json)
-            else:
-                emb_array = emb_json
+        # Check if vector extension is available
+        cur.execute("SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector');")
+        has_vector = cur.fetchone()[0]
+        
+        if has_vector:
+            # Use pgvector native cosine distance operator (<=>)
+            # 1 - distance gives similarity (distance is 0 for identical, 1 for orthogonal)
+            cur.execute("""
+                SELECT id,
+                       CASE 
+                           WHEN media_id IS NOT NULL THEN CONCAT('/api/images/', media_id, '/proxy')
+                           ELSE url
+                       END as image_url,
+                       caption,
+                       1 - (embedding <=> %s::vector) as similarity
+                FROM images
+                WHERE embedding IS NOT NULL
+                ORDER BY embedding <=> %s::vector
+                LIMIT %s
+            """, (embedding_list, embedding_list, limit))
             
-            # Convert to numpy array and normalize
-            emb_np = np.array(emb_array, dtype=np.float32)
-            emb_norm = np.linalg.norm(emb_np)
-            if emb_norm == 0:
-                continue
-            emb_np = emb_np / emb_norm
+            rows = cur.fetchall()
             
-            # Calculate cosine similarity
-            similarity = float(np.dot(embedding_np, emb_np))
+            return [
+                {
+                    "id": str(row[0]),
+                    "url": row[1],
+                    "caption": row[2],
+                    "similarity": float(row[3])
+                }
+                for row in rows
+            ]
+        else:
+            # Fallback to manual calculation if pgvector is not available
+            import json
+            cur.execute("""
+                SELECT id,
+                       CASE 
+                           WHEN media_id IS NOT NULL THEN CONCAT('/api/images/', media_id, '/proxy')
+                           ELSE url
+                       END as image_url,
+                       caption,
+                       embedding
+                FROM images
+                WHERE embedding IS NOT NULL
+            """)
+            rows = cur.fetchall()
             
-            similarities.append({
-                "id": str(row[0]),
-                "url": row[1],
-                "caption": row[2],
-                "similarity": similarity
-            })
-        except Exception as e:
-            print(f"Error calculating similarity for image {row[0]}: {e}")
-            continue
-    
-    # Sort by similarity and return top results
-    similarities.sort(key=lambda x: x["similarity"], reverse=True)
-    return similarities[:limit]
+            # Calculate cosine similarity for each image
+            similarities = []
+            for row in rows:
+                try:
+                    # Parse JSONB embedding (array of floats)
+                    emb_json = row[3]
+                    if isinstance(emb_json, str):
+                        emb_array = json.loads(emb_json)
+                    else:
+                        emb_array = emb_json
+                    
+                    # Convert to numpy array and normalize
+                    emb_np = np.array(emb_array, dtype=np.float32)
+                    emb_norm = np.linalg.norm(emb_np)
+                    if emb_norm == 0:
+                        continue
+                    emb_np = emb_np / emb_norm
+                    
+                    # Calculate cosine similarity
+                    similarity = float(np.dot(embedding_np, emb_np))
+                    
+                    similarities.append({
+                        "id": str(row[0]),
+                        "url": row[1],
+                        "caption": row[2],
+                        "similarity": similarity
+                    })
+                except Exception as e:
+                    print(f"Error calculating similarity for image {row[0]}: {e}")
+                    continue
+            
+            # Sort by similarity and return top results
+            similarities.sort(key=lambda x: x["similarity"], reverse=True)
+            return similarities[:limit]
 
 def search_similar_images_by_creator(embedding) -> List[Dict]:
     """
-    Find the most similar image for EACH creator
+    Find the most similar image for EACH creator using pgvector
     
     Returns a list where each entry contains:
     - creator_username: The creator's username
@@ -460,7 +539,6 @@ def search_similar_images_by_creator(embedding) -> List[Dict]:
     Results are sorted by similarity score (highest first)
     """
     import numpy as np
-    import json
     
     # Convert PyTorch tensor to numpy array
     if hasattr(embedding, 'detach'):
@@ -472,9 +550,10 @@ def search_similar_images_by_creator(embedding) -> List[Dict]:
     else:
         embedding_np = embedding
     
-    # Ensure it's 1D
+    # Ensure it's 1D and float32
     if len(embedding_np.shape) > 1:
         embedding_np = embedding_np.flatten()
+    embedding_np = embedding_np.astype(np.float32)
     
     # Normalize the query embedding
     query_norm = np.linalg.norm(embedding_np)
@@ -482,50 +561,39 @@ def search_similar_images_by_creator(embedding) -> List[Dict]:
         return []
     embedding_np = embedding_np / query_norm
     
-    with conn.cursor() as cur:
-        # Get all images with embeddings and creator usernames
-        cur.execute("""
-            SELECT creator_username,
-                   id,
-                   media_id,
-                   url,
-                   caption,
-                   width,
-                   height,
-                   embedding,
-                   media_url
-            FROM images
-            WHERE embedding IS NOT NULL 
-              AND creator_username IS NOT NULL
-        """)
-        rows = cur.fetchall()
+    # Convert to list for pgvector
+    embedding_list = embedding_np.tolist()
     
-    # Group by creator and find most similar for each
-    creator_best = {}
-    for row in rows:
-        creator = row[0]
-        try:
-            # Parse JSONB embedding (array of floats)
-            emb_json = row[7]
-            if isinstance(emb_json, str):
-                emb_array = json.loads(emb_json)
-            else:
-                emb_array = emb_json
+    with conn.cursor() as cur:
+        # Check if vector extension is available
+        cur.execute("SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector');")
+        has_vector = cur.fetchone()[0]
+        
+        if has_vector:
+            # Use pgvector native cosine distance operator (<=>)
+            # Get the most similar image for each creator using DISTINCT ON
+            cur.execute("""
+                SELECT DISTINCT ON (creator_username)
+                       creator_username,
+                       id,
+                       media_id,
+                       url,
+                       caption,
+                       width,
+                       height,
+                       media_url,
+                       1 - (embedding <=> %s::vector) as similarity_score
+                FROM images
+                WHERE embedding IS NOT NULL 
+                  AND creator_username IS NOT NULL
+                ORDER BY creator_username, embedding <=> %s::vector
+            """, (embedding_list, embedding_list))
             
-            # Convert to numpy array and normalize
-            emb_np = np.array(emb_array, dtype=np.float32)
-            emb_norm = np.linalg.norm(emb_np)
-            if emb_norm == 0:
-                continue
-            emb_np = emb_np / emb_norm
+            rows = cur.fetchall()
             
-            # Calculate cosine similarity
-            similarity = float(np.dot(embedding_np, emb_np))
-            
-            # Keep the best match for each creator
-            if creator not in creator_best or similarity > creator_best[creator]["similarity_score"]:
-                creator_best[creator] = {
-                    "creator_username": creator,
+            results = [
+                {
+                    "creator_username": row[0],
                     "image": {
                         "id": str(row[1]),
                         "media_id": row[2],
@@ -533,20 +601,83 @@ def search_similar_images_by_creator(embedding) -> List[Dict]:
                         "caption": row[4],
                         "width": row[5],
                         "height": row[6],
-                        "media_url": row[8]
+                        "media_url": row[7]
                     },
-                    "similarity_score": similarity
+                    "similarity_score": float(row[8])
                 }
-        except Exception as e:
-            print(f"Error calculating similarity for image {row[1]}: {e}")
-            continue
-    
-    results = list(creator_best.values())
-    
-    # Sort by similarity score (highest first)
-    results.sort(key=lambda x: x["similarity_score"], reverse=True)
-    
-    return results
+                for row in rows
+            ]
+            
+            # Sort by similarity score (highest first)
+            results.sort(key=lambda x: x["similarity_score"], reverse=True)
+            
+            return results
+        else:
+            # Fallback to manual calculation if pgvector is not available
+            import json
+            cur.execute("""
+                SELECT creator_username,
+                       id,
+                       media_id,
+                       url,
+                       caption,
+                       width,
+                       height,
+                       embedding,
+                       media_url
+                FROM images
+                WHERE embedding IS NOT NULL 
+                  AND creator_username IS NOT NULL
+            """)
+            rows = cur.fetchall()
+            
+            # Group by creator and find most similar for each
+            creator_best = {}
+            for row in rows:
+                creator = row[0]
+                try:
+                    # Parse JSONB embedding (array of floats)
+                    emb_json = row[7]
+                    if isinstance(emb_json, str):
+                        emb_array = json.loads(emb_json)
+                    else:
+                        emb_array = emb_json
+                    
+                    # Convert to numpy array and normalize
+                    emb_np = np.array(emb_array, dtype=np.float32)
+                    emb_norm = np.linalg.norm(emb_np)
+                    if emb_norm == 0:
+                        continue
+                    emb_np = emb_np / emb_norm
+                    
+                    # Calculate cosine similarity
+                    similarity = float(np.dot(embedding_np, emb_np))
+                    
+                    # Keep the best match for each creator
+                    if creator not in creator_best or similarity > creator_best[creator]["similarity_score"]:
+                        creator_best[creator] = {
+                            "creator_username": creator,
+                            "image": {
+                                "id": str(row[1]),
+                                "media_id": row[2],
+                                "url": row[3],
+                                "caption": row[4],
+                                "width": row[5],
+                                "height": row[6],
+                                "media_url": row[8]
+                            },
+                            "similarity_score": similarity
+                        }
+                except Exception as e:
+                    print(f"Error calculating similarity for image {row[1]}: {e}")
+                    continue
+            
+            results = list(creator_best.values())
+            
+            # Sort by similarity score (highest first)
+            results.sort(key=lambda x: x["similarity_score"], reverse=True)
+            
+            return results
 
 def get_creator_by_user_id(user_id: str) -> Optional[Dict]:
     """Get creator data by user ID"""
