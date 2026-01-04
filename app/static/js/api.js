@@ -1,24 +1,39 @@
 // API communication functions
 import { displayPhotos } from './ui.js';
 import { displayCreators } from './creators.js';
+import { showPreloader, hidePreloader } from './image-display.js';
 
 const API_BASE = '';
 
 
 
 // Load creators
-export async function loadCreators() {
+export async function loadCreators(showLoading = false) {
   try {
+    // Show preloader if requested
+    if (showLoading) {
+      showPreloader('טוען את המסרקות והמאפרות המובילות...');
+    }
+    
     // Use with-display-images endpoint to get recent Instagram images
     const res = await fetch(`${API_BASE}/api/creators/with-display-images`);
     const data = await res.json();
     window.allCreators = data.creators;
     displayCreators(data.creators);
     
+    // Hide preloader if it was shown
+    if (showLoading) {
+      hidePreloader();
+    }
+    
     // Return success
     return true;
   } catch (error) {
     console.error('Failed to load creators:', error);
+    // Hide preloader on error
+    if (showLoading) {
+      hidePreloader();
+    }
     throw error;
   }
 }
@@ -112,6 +127,26 @@ export async function updateCreatorProfile(token, data) {
       method: 'PUT',
       headers: { 'Authorization': 'Bearer ' + token }
     });
+    
+    if (!res.ok) {
+      // Try to get error message from response
+      let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.detail || errorMessage;
+      } catch (e) {
+        // If response is not JSON, try text
+        try {
+          errorMessage = await res.text() || errorMessage;
+        } catch (e2) {
+          // Use default message
+        }
+      }
+      const error = new Error(errorMessage);
+      error.response = res;
+      throw error;
+    }
+    
     return await res.json();
   } catch (error) {
     console.error('Failed to update creator profile:', error);

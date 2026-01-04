@@ -13,14 +13,8 @@
   <!-- Styles -->
   <link rel="stylesheet" href="/css/styles.css">
   <style>
-    /* Ensure preloader is visible immediately */
+    /* Ensure preloader is visible immediately on page load */
     #preloader {
-      display: flex !important;
-      opacity: 1 !important;
-      visibility: visible !important;
-    }
-    /* Prevent preloader from being hidden - FOR TESTING */
-    #preloader.hidden {
       display: flex !important;
       opacity: 1 !important;
       visibility: visible !important;
@@ -28,12 +22,6 @@
     /* Hide body content until loaded */
     body:not(.loaded) > *:not(#preloader) {
       opacity: 0;
-    }
-    /* Even if body has loaded class, keep preloader visible - FOR TESTING */
-    body.loaded #preloader {
-      display: flex !important;
-      opacity: 1 !important;
-      visibility: visible !important;
     }
   </style>
 </head>
@@ -249,6 +237,24 @@
       </div>
       
       <div class="filter-group price-slider">
+        <label class="filter-label">
+          <svg class="filter-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
+          </svg>
+          מיין לפי מחיר
+        </label>
+        <select id="priceSortField" class="filter-input">
+          <option value="">מיין לפי מחיר...</option>
+          <option value="price_hairstyle_bride">מחיר תסרוקת כלה</option>
+          <option value="price_hairstyle_bridesmaid">מחיר תסרוקת מלווה</option>
+          <option value="price_makeup_bride">מחיר איפור כלה</option>
+          <option value="price_makeup_bridesmaid">מחיר איפור מלווה</option>
+          <option value="price_hairstyle_makeup_combo">מחיר תסרוקת + איפור כלה</option>
+          <option value="price_hairstyle_makeup_bridesmaid_combo">מחיר תסרוקת + איפור מלווה</option>
+        </select>
+      </div>
+      
+      <div class="filter-group price-slider">
         <label class="filter-label" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; height: 24px;">
           <span style="display: flex; align-items: center; gap: 8px;">
             <svg class="filter-icon" viewBox="0 0 24 24" fill="currentColor">
@@ -264,16 +270,23 @@
       </div>
       
       <div class="filter-group">
-        <label class="filter-label">
+        <label class="filter-label" style="display: flex; align-items: center; gap: 8px;">
           <svg class="filter-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
           </svg>
-          זמינות
+          <span>זמינות</span>
+          <div class="info-icon-wrapper" style="position: relative; display: inline-flex; align-items: center;">
+            <svg class="info-icon" viewBox="0 0 24 24" fill="currentColor" style="width: 18px; height: 18px; color: #6b7280; cursor: help;">
+              <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.1"/>
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="currentColor"/>
+            </svg>
+            <span class="info-tooltip">כרגע לא זמין</span>
+          </div>
         </label>
         <input type="date" id="filterDate" class="filter-input" placeholder="בחרו תאריך" disabled>
       </div>
       
-      <div class="filter-group button-group" style="display: flex; flex-direction: column; gap: 12px; align-items: stretch; width: 100%;">
+      <div class="filter-group button-group" style="display: flex; flex-direction: column; gap: 12px; justify-content: flex-start;">
         <button class="match-btn" id="styleMatchBtn">
           <span style="display:inline-block;transform: translateY(2px);">✨</span>
           התאמת סגנון
@@ -388,9 +401,18 @@
             <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
             </svg>
-            מחיר תסרוקת + איפור
+            מחיר תסרוקת + איפור כלה
           </label>
           <input id="signup_price_hairstyle_makeup_combo" class="form-input" type="number" min="0" step="1" placeholder="₪" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
+            </svg>
+            מחיר תסרוקת + איפור מלווה
+          </label>
+          <input id="signup_price_hairstyle_makeup_bridesmaid_combo" class="form-input" type="number" min="0" step="1" placeholder="₪" />
         </div>
         <div class="form-group">
           <label class="form-label">
@@ -538,9 +560,18 @@
                 <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
                 </svg>
-                מחיר תסרוקת + איפור
+                מחיר תסרוקת + איפור כלה
               </label>
               <input id="mgmt_price_hairstyle_makeup_combo" class="form-input" type="number" min="0" step="1" placeholder="₪" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <svg class="form-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
+                </svg>
+                מחיר תסרוקת + איפור מלווה
+              </label>
+              <input id="mgmt_price_hairstyle_makeup_bridesmaid_combo" class="form-input" type="number" min="0" step="1" placeholder="₪" />
             </div>
             <div class="form-group">
               <label class="form-label">

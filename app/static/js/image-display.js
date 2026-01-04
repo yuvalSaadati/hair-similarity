@@ -63,7 +63,7 @@ async function updateAllCreatorCardsForDefault() {
 /**
  * Show preloader
  */
-function showPreloader(text = 'טוען את המסרקות והמאפרות המובילות...') {
+export function showPreloader(text = 'טוען את המסרקות והמאפרות המובילות...') {
     let preloader = document.getElementById('preloader');
     if (!preloader) {
         // Use the preloader from HTML if it exists, otherwise create it
@@ -162,22 +162,27 @@ function showPreloader(text = 'טוען את המסרקות והמאפרות ה�
         if (textEl) {
             textEl.textContent = text;
         }
+        // Make sure preloader is visible
         preloader.classList.remove('hidden');
+        preloader.style.display = 'flex';
+        preloader.style.opacity = '1';
+        preloader.style.visibility = 'visible';
     }
 }
 
 /**
  * Hide preloader
  */
-function hidePreloader() {
+export function hidePreloader() {
     const preloader = document.getElementById('preloader');
     if (preloader) {
         preloader.classList.add('hidden');
-        setTimeout(() => {
-            if (preloader.parentNode) {
-                preloader.remove();
-            }
-        }, 500);
+        // Remove inline styles that force visibility
+        preloader.style.display = 'none';
+        preloader.style.opacity = '0';
+        preloader.style.visibility = 'hidden';
+        // Don't remove the preloader element - just hide it so it can be reused
+        // The preloader will be removed only on initial page load (in main.js)
     }
 }
 

@@ -25,6 +25,7 @@ def upsert_my_creator(current_user: dict = Depends(get_current_user),
                      price_makeup_bride: Optional[str] = Query(None),
                      price_makeup_bridesmaid: Optional[str] = Query(None),
                      price_hairstyle_makeup_combo: Optional[str] = Query(None),
+                     price_hairstyle_makeup_bridesmaid_combo: Optional[str] = Query(None),
                      calendar_url: Optional[str] = Query(None),
                      ingest_limit: int = Query(100, description="posts to fetch after save"),
                      background_tasks: BackgroundTasks = None):
@@ -70,6 +71,7 @@ def upsert_my_creator(current_user: dict = Depends(get_current_user),
     price_makeup_bride_float = parse_price(price_makeup_bride)
     price_makeup_bridesmaid_float = parse_price(price_makeup_bridesmaid)
     price_hairstyle_makeup_combo_float = parse_price(price_hairstyle_makeup_combo)
+    price_hairstyle_makeup_bridesmaid_combo_float = parse_price(price_hairstyle_makeup_bridesmaid_combo)
     
     # Get most recent image from Instagram
     recent_image_url = None
@@ -87,14 +89,22 @@ def upsert_my_creator(current_user: dict = Depends(get_current_user),
     is_new_creator = existing_creator is None
     
     # Upsert creator
-    upsert_creator(current_user["id"], username, phone, location, arrival_location, min_price_float, max_price_float, 
-                   calendar_url, profile_data,
-                   price_hairstyle_bride=price_hairstyle_bride_float,
-                   price_hairstyle_bridesmaid=price_hairstyle_bridesmaid_float,
-                   price_makeup_bride=price_makeup_bride_float,
-                   price_makeup_bridesmaid=price_makeup_bridesmaid_float,
-                   price_hairstyle_makeup_combo=price_hairstyle_makeup_combo_float,
-                   recent_image=recent_image_url)
+    try:
+        upsert_creator(current_user["id"], username, phone, location, arrival_location, min_price_float, max_price_float, 
+                       calendar_url, profile_data,
+                       price_hairstyle_bride=price_hairstyle_bride_float,
+                       price_hairstyle_bridesmaid=price_hairstyle_bridesmaid_float,
+                       price_makeup_bride=price_makeup_bride_float,
+                       price_makeup_bridesmaid=price_makeup_bridesmaid_float,
+                       price_hairstyle_makeup_combo=price_hairstyle_makeup_combo_float,
+                       price_hairstyle_makeup_bridesmaid_combo=price_hairstyle_makeup_bridesmaid_combo_float,
+                       recent_image=recent_image_url)
+    except ValueError as e:
+        # User-friendly error message (already in Hebrew from upsert_creator)
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        # Generic error handling
+        raise HTTPException(status_code=500, detail=f"שגיאה בשמירת הפרופיל: {str(e)}")
     
     # Only ingest images for NEW creators (on signup), not on updates
     if is_new_creator:

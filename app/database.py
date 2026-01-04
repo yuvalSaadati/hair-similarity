@@ -56,6 +56,7 @@ def setup_database_schema():
             price_makeup_bride NUMERIC,
             price_makeup_bridesmaid NUMERIC,
             price_hairstyle_makeup_combo NUMERIC,
+            price_hairstyle_makeup_bridesmaid_combo NUMERIC,
             calendar_url TEXT,
             created_at TIMESTAMPTZ DEFAULT now(),
             updated_at TIMESTAMPTZ DEFAULT now(),
@@ -259,6 +260,12 @@ def setup_database_schema():
           END IF;
           IF NOT EXISTS (
             SELECT 1 FROM information_schema.columns
+            WHERE table_name='creators' AND column_name='price_hairstyle_makeup_bridesmaid_combo'
+          ) THEN
+            ALTER TABLE creators ADD COLUMN price_hairstyle_makeup_bridesmaid_combo NUMERIC;
+          END IF;
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
             WHERE table_name='creators' AND column_name='arrival_location'
           ) THEN
             ALTER TABLE creators ADD COLUMN arrival_location TEXT[];
@@ -271,6 +278,7 @@ def get_creators() -> List[CreatorResponse]:
     with conn.cursor() as cur:
         cur.execute("""
             SELECT 
+                c.id,
                 c.username,
                 c.phone,
                 c.location,
@@ -282,6 +290,7 @@ def get_creators() -> List[CreatorResponse]:
                 c.price_makeup_bride,
                 c.price_makeup_bridesmaid,
                 c.price_hairstyle_makeup_combo,
+                c.price_hairstyle_makeup_bridesmaid_combo,
                 c.calendar_url,
                 c.profile_picture_local,
                 c.instagram_profile_picture,
@@ -334,43 +343,51 @@ def get_creators() -> List[CreatorResponse]:
 
     creators = []
     for r in rows:
-        # Use Instagram profile picture URL directly
-        profile_picture_url = r[13]    # instagram_profile_picture (shifted due to new columns)
-        
-        # Handle arrival_location as array
-        arrival_locations = r[3]
-        if arrival_locations is None:
-            arrival_locations = []
-        elif isinstance(arrival_locations, list):
-            arrival_locations = arrival_locations
-        elif isinstance(arrival_locations, str):
-            arrival_locations = [loc.strip() for loc in arrival_locations.split(',') if loc.strip()]
-        else:
-            arrival_locations = []
-        
-        creators.append(CreatorResponse(
-            creator_id=r[0],
-            username=r[0],
-            phone=r[1],
-            location=r[2],
-            arrival_location=','.join(arrival_locations) if arrival_locations else None,  # Convert array to comma-separated string for API
-            min_price=float(r[4]) if r[4] is not None else None,
-            max_price=float(r[5]) if r[5] is not None else None,
-            price_hairstyle_bride=float(r[6]) if r[6] is not None else None,
-            price_hairstyle_bridesmaid=float(r[7]) if r[7] is not None else None,
-            price_makeup_bride=float(r[8]) if r[8] is not None else None,
-            price_makeup_bridesmaid=float(r[9]) if r[9] is not None else None,
-            price_hairstyle_makeup_combo=float(r[10]) if r[10] is not None else None,
-            calendar_url=r[11],
-            profile_picture=profile_picture_url,
-            bio=r[14],
-            recent_image=r[15] if r[15] is not None else None,
-            post_count=int(r[17]) if r[17] is not None else 0,  # post_count is at index 17 (after updated_at at 16)
-            review_count=int(r[18]) if r[18] is not None else 0,  # review_count is at index 18
-            sample_image=r[19] if r[19] is not None else None,  # sample_image is at index 19
-            sample_image_id=str(r[20]) if r[20] else None,  # sample_image_id is at index 20
-            profile_url=f"https://instagram.com/{r[0]}" if r[0] else None,
-        ))
+        try:
+            # Use Instagram profile picture URL directly
+            profile_picture_url = r[15]    # instagram_profile_picture (index 15, shifted by 1 due to c.id)
+            
+            # Handle arrival_location as array
+            arrival_locations = r[4]  # arrival_location is now at index 4 (shifted by 1)
+            if arrival_locations is None:
+                arrival_locations = []
+            elif isinstance(arrival_locations, list):
+                arrival_locations = arrival_locations
+            elif isinstance(arrival_locations, str):
+                arrival_locations = [loc.strip() for loc in arrival_locations.split(',') if loc.strip()]
+            else:
+                arrival_locations = []
+            
+            creators.append(CreatorResponse(
+                creator_id=str(r[0]),  # c.id is at index 0
+                username=r[1],  # username is now at index 1
+                phone=r[2],  # phone is now at index 2
+                location=r[3],  # location is now at index 3
+                arrival_location=','.join(arrival_locations) if arrival_locations else None,  # Convert array to comma-separated string for API
+                min_price=float(r[5]) if r[5] is not None else None,  # min_price is now at index 5
+                max_price=float(r[6]) if r[6] is not None else None,  # max_price is now at index 6
+                price_hairstyle_bride=float(r[7]) if r[7] is not None else None,  # price_hairstyle_bride is now at index 7
+                price_hairstyle_bridesmaid=float(r[8]) if r[8] is not None else None,  # price_hairstyle_bridesmaid is now at index 8
+                price_makeup_bride=float(r[9]) if r[9] is not None else None,  # price_makeup_bride is now at index 9
+                price_makeup_bridesmaid=float(r[10]) if r[10] is not None else None,  # price_makeup_bridesmaid is now at index 10
+                price_hairstyle_makeup_combo=float(r[11]) if r[11] is not None else None,  # price_hairstyle_makeup_combo is now at index 11
+                price_hairstyle_makeup_bridesmaid_combo=float(r[12]) if r[12] is not None else None,  # price_hairstyle_makeup_bridesmaid_combo is now at index 12
+                calendar_url=r[13],  # calendar_url is now at index 13
+                profile_picture=profile_picture_url,
+                bio=r[16],  # instagram_bio is now at index 16
+                recent_image=r[17] if r[17] is not None else None,  # recent_image is now at index 17
+                post_count=int(r[19]) if r[19] is not None else 0,  # post_count is now at index 19 (after updated_at at 18)
+                review_count=int(r[20]) if r[20] is not None else 0,  # review_count is now at index 20
+                sample_image=r[21] if r[21] is not None else None,  # sample_image is now at index 21
+                sample_image_id=str(r[22]) if r[22] else None,  # sample_image_id is now at index 22
+                profile_url=f"https://instagram.com/{r[1]}" if r[1] else None,  # username is at index 1
+            ))
+        except Exception as e:
+            print(f"Error processing creator row: {e}")
+            print(f"Row data: {r}")
+            import traceback
+            traceback.print_exc()
+            continue  # Skip this row and continue with next
     
     return creators
 
@@ -686,6 +703,7 @@ def get_creator_by_user_id(user_id: str) -> Optional[Dict]:
             SELECT username, phone, location, arrival_location, min_price, max_price, 
                    price_hairstyle_bride, price_hairstyle_bridesmaid, 
                    price_makeup_bride, price_makeup_bridesmaid, price_hairstyle_makeup_combo,
+                   price_hairstyle_makeup_bridesmaid_combo,
                    calendar_url, instagram_profile_picture, instagram_bio
             FROM creators
             WHERE user_id = %s
@@ -718,6 +736,7 @@ def get_creator_by_user_id(user_id: str) -> Optional[Dict]:
         "price_makeup_bride": float(row[8]) if row[8] is not None else None,
         "price_makeup_bridesmaid": float(row[9]) if row[9] is not None else None,
         "price_hairstyle_makeup_combo": float(row[10]) if row[10] is not None else None,
+        "price_hairstyle_makeup_bridesmaid_combo": float(row[11]) if len(row) > 11 and row[11] is not None else None,
         "calendar_url": row[11],
         "profile_picture": row[12],
         "bio": row[13]
@@ -733,8 +752,15 @@ def upsert_creator(user_id: str, username: str, phone: Optional[str] = None,
                    price_makeup_bride: Optional[float] = None,
                    price_makeup_bridesmaid: Optional[float] = None,
                    price_hairstyle_makeup_combo: Optional[float] = None,
+                   price_hairstyle_makeup_bridesmaid_combo: Optional[float] = None,
                    recent_image: Optional[str] = None):
-    """Create or update creator profile"""
+    """Create or update creator profile
+    
+    Raises:
+        ValueError: If username already exists for a different user
+    """
+    import psycopg.errors
+    
     # Convert arrival_location string (comma-separated) to array
     arrival_location_array = None
     if arrival_location:
@@ -744,34 +770,54 @@ def upsert_creator(user_id: str, username: str, phone: Optional[str] = None,
             arrival_location_array = arrival_location
     
     with conn.cursor() as cur:
-        cur.execute("""
-            INSERT INTO creators (user_id, username, phone, location, arrival_location, min_price, max_price, 
-                                price_hairstyle_bride, price_hairstyle_bridesmaid, 
-                                price_makeup_bride, price_makeup_bridesmaid, price_hairstyle_makeup_combo,
-                                calendar_url, instagram_profile_picture, instagram_bio, profile_picture_local, recent_image, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL, %s, now())
-            ON CONFLICT (user_id) DO UPDATE SET
-                username = EXCLUDED.username,
-                phone = EXCLUDED.phone,
-                location = EXCLUDED.location,
-                arrival_location = EXCLUDED.arrival_location,
-                min_price = EXCLUDED.min_price,
-                max_price = EXCLUDED.max_price,
-                price_hairstyle_bride = EXCLUDED.price_hairstyle_bride,
-                price_hairstyle_bridesmaid = EXCLUDED.price_hairstyle_bridesmaid,
-                price_makeup_bride = EXCLUDED.price_makeup_bride,
-                price_makeup_bridesmaid = EXCLUDED.price_makeup_bridesmaid,
-                price_hairstyle_makeup_combo = EXCLUDED.price_hairstyle_makeup_combo,
-                calendar_url = EXCLUDED.calendar_url,
-                instagram_profile_picture = EXCLUDED.instagram_profile_picture,
-                instagram_bio = EXCLUDED.instagram_bio,
-                profile_picture_local = NULL,
-                recent_image = EXCLUDED.recent_image,
-                updated_at = now()
-        """, (user_id, username, phone, location, arrival_location_array, min_price, max_price, 
-              price_hairstyle_bride, price_hairstyle_bridesmaid, 
-              price_makeup_bride, price_makeup_bridesmaid, price_hairstyle_makeup_combo,
-              calendar_url,
-              instagram_data.get("profile_picture_url") if instagram_data else None,
-              instagram_data.get("biography") if instagram_data else None,
-              recent_image))
+        # Check if username already exists for a different user
+        cur.execute("SELECT user_id FROM creators WHERE username = %s", (username,))
+        existing_creator = cur.fetchone()
+        
+        if existing_creator and str(existing_creator[0]) != str(user_id):
+            raise ValueError(f"שם המשתמש '{username}' כבר קיים במערכת. אנא בחרו שם משתמש אחר.")
+        
+        try:
+            cur.execute("""
+                INSERT INTO creators (user_id, username, phone, location, arrival_location, min_price, max_price, 
+                                    price_hairstyle_bride, price_hairstyle_bridesmaid, 
+                                    price_makeup_bride, price_makeup_bridesmaid, price_hairstyle_makeup_combo,
+                                    price_hairstyle_makeup_bridesmaid_combo,
+                                    calendar_url, instagram_profile_picture, instagram_bio, profile_picture_local, recent_image, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL, %s, now())
+                ON CONFLICT (user_id) DO UPDATE SET
+                    username = EXCLUDED.username,
+                    phone = EXCLUDED.phone,
+                    location = EXCLUDED.location,
+                    arrival_location = EXCLUDED.arrival_location,
+                    min_price = EXCLUDED.min_price,
+                    max_price = EXCLUDED.max_price,
+                    price_hairstyle_bride = EXCLUDED.price_hairstyle_bride,
+                    price_hairstyle_bridesmaid = EXCLUDED.price_hairstyle_bridesmaid,
+                    price_makeup_bride = EXCLUDED.price_makeup_bride,
+                    price_makeup_bridesmaid = EXCLUDED.price_makeup_bridesmaid,
+                    price_hairstyle_makeup_combo = EXCLUDED.price_hairstyle_makeup_combo,
+                    price_hairstyle_makeup_bridesmaid_combo = EXCLUDED.price_hairstyle_makeup_bridesmaid_combo,
+                    calendar_url = EXCLUDED.calendar_url,
+                    instagram_profile_picture = EXCLUDED.instagram_profile_picture,
+                    instagram_bio = EXCLUDED.instagram_bio,
+                    profile_picture_local = NULL,
+                    recent_image = EXCLUDED.recent_image,
+                    updated_at = now()
+            """, (user_id, username, phone, location, arrival_location_array, min_price, max_price, 
+                  price_hairstyle_bride, price_hairstyle_bridesmaid, 
+                  price_makeup_bride, price_makeup_bridesmaid, price_hairstyle_makeup_combo,
+                  price_hairstyle_makeup_bridesmaid_combo,
+                  calendar_url,
+                  instagram_data.get("profile_picture_url") if instagram_data else None,
+                  instagram_data.get("biography") if instagram_data else None,
+                  recent_image))
+        except psycopg.errors.UniqueViolation as e:
+            # Handle unique constraint violations
+            error_msg = str(e)
+            if "creators_username_key" in error_msg or "username" in error_msg.lower():
+                raise ValueError(f"שם המשתמש '{username}' כבר קיים במערכת. אנא בחרו שם משתמש אחר.")
+            elif "creators_user_id_key" in error_msg or "user_id" in error_msg.lower():
+                raise ValueError("כבר קיים פרופיל יוצר למשתמש זה.")
+            else:
+                raise ValueError("שגיאה בשמירת הפרופיל. אנא נסו שוב.")

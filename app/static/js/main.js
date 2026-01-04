@@ -2,31 +2,12 @@
 import { loadCreators } from './api.js';
 import { setupFilters } from './filters.js';
 import { setupAuth } from './auth.js';
-import { initializeImageDisplay } from './image-display.js';
+import { initializeImageDisplay, hidePreloader } from './image-display.js';
 import { setupReviewsForm } from './creators.js';
 
 // Global variables
 let allCreators = [];
 let queryEmbedding = null;
-
-// Hide preloader function
-function hidePreloader() {
-  const preloader = document.getElementById('preloader');
-  const body = document.body;
-  
-  if (preloader) {
-    preloader.classList.add('hidden');
-    // Show body content
-    body.classList.add('loaded');
-    // Remove preloader from DOM after animation
-    setTimeout(() => {
-      preloader.remove();
-    }, 500);
-  } else {
-    // If preloader already removed, just show body
-    body.classList.add('loaded');
-  }
-}
 
 
 // Initialize the application
@@ -55,11 +36,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Hide preloader after everything is loaded
     hidePreloader();
     
+    // Show body content and remove preloader after initial load
+    const body = document.body;
+    body.classList.add('loaded');
+    setTimeout(() => {
+      const preloader = document.getElementById('preloader');
+      if (preloader && preloader.classList.contains('hidden')) {
+        preloader.remove();
+      }
+    }, 500);
+    
     console.log('✅ App initialized successfully');
   } catch (error) {
     console.error('❌ Failed to initialize app:', error);
     // Hide preloader even on error
     hidePreloader();
+    const body = document.body;
+    body.classList.add('loaded');
   }
 });
 

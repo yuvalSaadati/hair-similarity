@@ -299,6 +299,7 @@ input[type="file"] {
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  position: relative; /* For form preloader positioning */
 }
 
 .form-group { 
@@ -402,7 +403,7 @@ textarea.form-input {
   border-radius: 16px; 
   margin-bottom: 24px; 
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 24px;
   align-items: start;
   box-shadow: 0 2px 8px rgba(236, 72, 153, 0.08);
@@ -411,17 +412,23 @@ textarea.form-input {
 
 @media (max-width: 1400px) {
   .filter-bar {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
 @media (max-width: 1000px) {
   .filter-bar {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
 @media (max-width: 700px) {
+  .filter-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
   .filter-bar {
     grid-template-columns: 1fr;
   }
@@ -464,6 +471,7 @@ textarea.form-input {
   background: white;
   transition: all 0.2s ease;
   width: 100%;
+  min-width: 180px;
   box-sizing: border-box;
 }
 
@@ -520,6 +528,10 @@ textarea.form-input {
   position: relative; 
   height: 32px; 
   margin-top: 0;
+  width: 100%;
+  min-width: 180px;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .slider { 
@@ -626,6 +638,8 @@ textarea.form-input {
   border: none; 
   cursor: pointer; 
   width: 100%;
+  min-width: 180px;
+  box-sizing: border-box;
   box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
 }
 
@@ -666,6 +680,8 @@ textarea.form-input {
   box-shadow: none; 
   cursor: pointer; 
   width: 100%;
+  min-width: 180px;
+  box-sizing: border-box;
 }
 
 .clear-filters-btn:hover { 
@@ -720,6 +736,7 @@ textarea.form-input {
 
 .region-btn { 
   width: 100%; 
+  min-width: 180px;
   display: flex; 
   align-items: center; 
   justify-content: space-between; 
@@ -1377,6 +1394,106 @@ textarea.form-input {
 .preloader-dots span:nth-child(3) {
   animation-delay: 0.4s;
 }
+
+/* Form Preloader - for signup/forms */
+.form-preloader {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  border-radius: 8px;
+}
+
+.form-preloader-content {
+  text-align: center;
+  color: #8b4a6b;
+}
+
+.form-preloader-spinner {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 16px;
+  border: 4px solid #f3f4f6;
+  border-top-color: #ec4899;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.form-preloader-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #8b4a6b;
+  margin: 0;
+}
+
+/* Info icon with tooltip */
+.info-icon-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.info-icon {
+  width: 18px;
+  height: 18px;
+  color: #6b7280;
+  cursor: help;
+  transition: color 0.2s ease;
+}
+
+.info-icon-wrapper:hover .info-icon {
+  color: #ec4899;
+}
+
+.info-tooltip {
+  position: absolute;
+  bottom: 100%;
+  right: 50%;
+  transform: translateX(50%);
+  margin-bottom: 8px;
+  padding: 6px 12px;
+  background: #1f2937;
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 1000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.info-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 50%;
+  transform: translateX(50%);
+  border: 5px solid transparent;
+  border-top-color: #1f2937;
+}
+
+.info-icon-wrapper:hover .info-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
 
 @keyframes dotBounce {
   0%, 80%, 100% {

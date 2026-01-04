@@ -34,12 +34,16 @@ def delete_creator_images(username: str) -> int:
         conn.commit()
         return deleted_count
 
-def refresh_all_creators_images(limit_per_creator: int = 30, dry_run: bool = False):
+def refresh_all_creators_images(limit_per_creator: int = 50, dry_run: bool = False):
     """
     Refresh images for all creators
     
+    Fetches media items from Instagram and only ingests those that pass
+    the is_hair_related_caption filter (filtering happens in ingest_instagram_creators).
+    
     Args:
-        limit_per_creator: Number of images to fetch per creator (default: 20)
+        limit_per_creator: Number of media items to fetch per creator (default: 50)
+                          Only hair-related images will be ingested
         dry_run: If True, only show what would be done without making changes
     """
     print(f"{'=' * 60}")
@@ -91,7 +95,12 @@ def refresh_all_creators_images(limit_per_creator: int = 30, dry_run: bool = Fal
                     print(f"  [DRY RUN] Would delete {count} existing images")
             
             # Re-ingest images for this creator
+            # Note: ingest_instagram_creators already filters by is_hair_related_caption
+            # We fetch more media items to increase chances of finding hair-related content
             if not dry_run:
+                # Fetch more media items to find hair-related content (filtering happens inside)
+                # The limit_per_creator is the number of media items to fetch, 
+                # but only hair-related ones will be ingested
                 result = ingest_instagram_creators([username], limit_per_creator)
                 total_added += result.get("added", 0)
                 total_skipped += result.get("skipped", 0)
@@ -99,9 +108,9 @@ def refresh_all_creators_images(limit_per_creator: int = 30, dry_run: bool = Fal
                 if errors:
                     total_errors += len(errors)
                     print(f"  ⚠ {len(errors)} errors occurred")
-                print(f"  ✓ Added {result.get('added', 0)} new images, skipped {result.get('skipped', 0)}")
+                print(f"  ✓ Added {result.get('added', 0)} hair-related images, skipped {result.get('skipped', 0)} non-hair-related")
             else:
-                print(f"  [DRY RUN] Would fetch and ingest up to {limit_per_creator} images")
+                print(f"  [DRY RUN] Would fetch up to {limit_per_creator} media items and filter for hair-related content")
             
             # Update recent_image for the creator
             if not dry_run:
@@ -178,8 +187,8 @@ Examples:
     parser.add_argument(
         '--limit',
         type=int,
-        default=30,
-        help='Number of images to fetch per creator (default: 20)'
+        default=50,
+        help='Number of media items to fetch per creator (default: 50). Only hair-related images will be ingested.'
     )
     
     parser.add_argument(

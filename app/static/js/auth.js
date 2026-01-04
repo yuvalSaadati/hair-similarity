@@ -162,6 +162,7 @@ export async function openCreatorManagementModal() {
     updateFormField('mgmt_price_makeup_bride', creator.price_makeup_bride || '');
     updateFormField('mgmt_price_makeup_bridesmaid', creator.price_makeup_bridesmaid || '');
     updateFormField('mgmt_price_hairstyle_makeup_combo', creator.price_hairstyle_makeup_combo || '');
+    updateFormField('mgmt_price_hairstyle_makeup_bridesmaid_combo', creator.price_hairstyle_makeup_bridesmaid_combo || '');
     
     // Handle location (single location - where creator is leaving from)
     updateFormField('mgmt_location', creator.location || '');
@@ -198,6 +199,7 @@ async function handleSignUp(e) {
   const priceMakeupBride = getFormFieldValue('signup_price_makeup_bride');
   const priceMakeupBridesmaid = getFormFieldValue('signup_price_makeup_bridesmaid');
   const priceHairstyleMakeupCombo = getFormFieldValue('signup_price_hairstyle_makeup_combo');
+  const priceHairstyleMakeupBridesmaidCombo = getFormFieldValue('signup_price_hairstyle_makeup_bridesmaid_combo');
   
   if (!email || !password || !username) {
     showNotification('אימייל, סיסמה ושם משתמש באינסטגרם נדרשים', 'error');
@@ -232,17 +234,30 @@ async function handleSignUp(e) {
       price_makeup_bride: priceMakeupBride || '',
       price_makeup_bridesmaid: priceMakeupBridesmaid || '',
       price_hairstyle_makeup_combo: priceHairstyleMakeupCombo || '',
+      price_hairstyle_makeup_bridesmaid_combo: priceHairstyleMakeupBridesmaidCombo || '',
       ingest_limit: 100
     };
     
     await updateCreatorProfile(registerData.token, creatorData);
     
+    // Ensure preloader is hidden
+    const { hidePreloader } = await import('./image-display.js');
+    hidePreloader();
+    
     toggleModal('signUpModal', false);
     showNotification('הרשמה הושלמה בהצלחה! התמונות שלכם נטענות ברקע...', 'success');
+    // Load creators without showing preloader
     loadCreators();
   } catch (error) {
     console.error('Sign up failed:', error);
-    showNotification('הרשמה נכשלה', 'error');
+    
+    // Extract error message - registerUser already extracts the detail from API
+    let errorMessage = 'הרשמה נכשלה';
+    if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    showNotification(errorMessage, 'error');
   }
 }
 
@@ -336,6 +351,7 @@ async function handleUpdateCreatorProfile(e) {
   const priceMakeupBride = getFormFieldValue('mgmt_price_makeup_bride');
   const priceMakeupBridesmaid = getFormFieldValue('mgmt_price_makeup_bridesmaid');
   const priceHairstyleMakeupCombo = getFormFieldValue('mgmt_price_hairstyle_makeup_combo');
+  const priceHairstyleMakeupBridesmaidCombo = getFormFieldValue('mgmt_price_hairstyle_makeup_bridesmaid_combo');
   
   if (!username) {
     showNotification('שם משתמש באינסטגרם נדרש', 'error');
@@ -357,7 +373,8 @@ async function handleUpdateCreatorProfile(e) {
     price_hairstyle_bridesmaid: priceHairstyleBridesmaid || '',
     price_makeup_bride: priceMakeupBride || '',
     price_makeup_bridesmaid: priceMakeupBridesmaid || '',
-    price_hairstyle_makeup_combo: priceHairstyleMakeupCombo || ''
+    price_hairstyle_makeup_combo: priceHairstyleMakeupCombo || '',
+    price_hairstyle_makeup_bridesmaid_combo: priceHairstyleMakeupBridesmaidCombo || ''
   };
   
   try {

@@ -135,39 +135,48 @@ def ig_expand_media_to_images(media_list: List[Dict]) -> List[Dict]:
 
 def ig_get_most_recent_image(username: str) -> Optional[Dict]:
     """
-    Get the most recent Instagram image for a creator.
+    Get the most recent Instagram image for a creator that passes hair-related caption filter.
     Prefers IMAGE or CAROUSEL_ALBUM, falls back to VIDEO thumbnail if no images found.
+    Only returns images with hair-related captions.
     
     Args:
         username: Creator's Instagram username
     
     Returns:
-        Dict with media_id, media_url, caption, or None if no media found
+        Dict with media_id, media_url, caption, or None if no matching media found
     """
+    from app.image_processing import is_hair_related_caption
+    
     try:
         # Get recent media (fetch more to find first image if first is a video)
-        media_items = ig_get_recent_media_by_creator(username, limit=30)
+        media_items = ig_get_recent_media_by_creator(username, limit=50)  # Increased limit to find hair-related content
         if not media_items:
             return None
         
-        # First, try to find IMAGE or CAROUSEL_ALBUM
+        # First, try to find IMAGE or CAROUSEL_ALBUM with hair-related caption
         for media in media_items:
             mtype = media.get("media_type")
             if mtype == "IMAGE" or mtype == "CAROUSEL_ALBUM":
-                # Only return if it has a media_url (images should have this)
-                if media.get("media_url"):
+                caption = media.get("caption", "")
+                # Only return if it has a media_url AND passes hair-related filter
+                if media.get("media_url") and is_hair_related_caption(caption):
                     return {
                         "media_id": media.get("id"),
                         "media_url": media.get("media_url"),
-                        "caption": media.get("caption", ""),
+                        "caption": caption,
                         "permalink": media.get("permalink", ""),
                         "media_type": mtype
                     }
         
-        # No images found - fall back to first VIDEO and use its thumbnail
+        # No hair-related images found - fall back to first VIDEO with hair-related caption
         for media in media_items:
             mtype = media.get("media_type")
             if mtype == "VIDEO":
+                caption = media.get("caption", "")
+                # Only return if caption passes hair-related filter
+                if not is_hair_related_caption(caption):
+                    continue
+                    
                 # Try to get thumbnail_url from the media object first
                 thumbnail_url = media.get("thumbnail_url")
                 
@@ -182,7 +191,7 @@ def ig_get_most_recent_image(username: str) -> Optional[Dict]:
                     return {
                         "media_id": media.get("id"),
                         "media_url": thumbnail_url,  # Use thumbnail as media_url
-                        "caption": media.get("caption", ""),
+                        "caption": caption,
                         "permalink": media.get("permalink", ""),
                         "media_type": "VIDEO"
                     }

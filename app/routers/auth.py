@@ -29,7 +29,7 @@ def register(request: RegisterRequest):
             )
             user_id = cur.fetchone()[0]
         except psycopg.errors.UniqueViolation:
-            raise HTTPException(400, "Email already registered")
+            raise HTTPException(status_code=400, detail="האימייל כבר רשום במערכת. אנא השתמשו באימייל אחר או התחברו.")
     
     token = create_jwt(str(user_id), request.email)
     return {"token": token, "user_id": str(user_id)}

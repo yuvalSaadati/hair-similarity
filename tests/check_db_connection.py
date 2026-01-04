@@ -33,7 +33,7 @@ try:
         # Get PostgreSQL version
         cur.execute("SELECT version();")
         version = cur.fetchone()[0]
-        print(f"✓ Connected successfully!")
+        print(f"[OK] Connected successfully!")
         print(f"\nPostgreSQL Version:")
         print(f"  {version}")
         
@@ -77,7 +77,7 @@ try:
     conn.close()
     
 except Exception as e:
-    print(f"\n✗ Connection failed!")
+    print(f"\n[ERROR] Connection failed!")
     print(f"Error: {e}")
     print(f"\nTroubleshooting:")
     print(f"  1. Make sure PostgreSQL is running")

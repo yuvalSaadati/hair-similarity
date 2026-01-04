@@ -191,7 +191,8 @@ export function createCreatorCard(creator) {
     price_hairstyle_bridesmaid: 'תסרוקת מלווה',
     price_makeup_bride: 'איפור כלה',
     price_makeup_bridesmaid: 'איפור מלווה',
-    price_hairstyle_makeup_combo: 'תסרוקת + איפור'
+    price_hairstyle_makeup_combo: 'תסרוקת + איפור כלה',
+    price_hairstyle_makeup_bridesmaid_combo: 'תסרוקת + איפור מלווה'
   };
   
   // Collect all valid prices (non-zero, non-null, non-undefined, non-empty)
@@ -294,6 +295,7 @@ export function filterCreators(creators, filters) {
         creator.price_makeup_bride,
         creator.price_makeup_bridesmaid,
         creator.price_hairstyle_makeup_combo,
+        creator.price_hairstyle_makeup_bridesmaid_combo,
         creator.min_price,
         creator.max_price
       ]
@@ -329,6 +331,7 @@ function getMinPrice(creator) {
     creator.price_makeup_bride,
     creator.price_makeup_bridesmaid,
     creator.price_hairstyle_makeup_combo,
+    creator.price_hairstyle_makeup_bridesmaid_combo,
     creator.min_price
   ].filter(price => price !== null && price !== undefined && price !== '')
    .map(price => parseFloat(price))
@@ -345,6 +348,7 @@ function getMaxPrice(creator) {
     creator.price_makeup_bride,
     creator.price_makeup_bridesmaid,
     creator.price_hairstyle_makeup_combo,
+    creator.price_hairstyle_makeup_bridesmaid_combo,
     creator.max_price
   ].filter(price => price !== null && price !== undefined && price !== '')
    .map(price => parseFloat(price))
@@ -362,6 +366,42 @@ export function sortCreators(creators, sortBy) {
       return sorted.sort((a, b) => getMinPrice(a) - getMinPrice(b));
     case 'price_high':
       return sorted.sort((a, b) => getMaxPrice(b) - getMaxPrice(a));
+    case 'price_hairstyle_bride':
+      return sorted.sort((a, b) => {
+        const priceA = parseFloat(a.price_hairstyle_bride) || Infinity;
+        const priceB = parseFloat(b.price_hairstyle_bride) || Infinity;
+        return priceA - priceB;
+      });
+    case 'price_hairstyle_bridesmaid':
+      return sorted.sort((a, b) => {
+        const priceA = parseFloat(a.price_hairstyle_bridesmaid) || Infinity;
+        const priceB = parseFloat(b.price_hairstyle_bridesmaid) || Infinity;
+        return priceA - priceB;
+      });
+    case 'price_makeup_bride':
+      return sorted.sort((a, b) => {
+        const priceA = parseFloat(a.price_makeup_bride) || Infinity;
+        const priceB = parseFloat(b.price_makeup_bride) || Infinity;
+        return priceA - priceB;
+      });
+    case 'price_makeup_bridesmaid':
+      return sorted.sort((a, b) => {
+        const priceA = parseFloat(a.price_makeup_bridesmaid) || Infinity;
+        const priceB = parseFloat(b.price_makeup_bridesmaid) || Infinity;
+        return priceA - priceB;
+      });
+    case 'price_hairstyle_makeup_combo':
+      return sorted.sort((a, b) => {
+        const priceA = parseFloat(a.price_hairstyle_makeup_combo) || Infinity;
+        const priceB = parseFloat(b.price_hairstyle_makeup_combo) || Infinity;
+        return priceA - priceB;
+      });
+    case 'price_hairstyle_makeup_bridesmaid_combo':
+      return sorted.sort((a, b) => {
+        const priceA = parseFloat(a.price_hairstyle_makeup_bridesmaid_combo) || Infinity;
+        const priceB = parseFloat(b.price_hairstyle_makeup_bridesmaid_combo) || Infinity;
+        return priceA - priceB;
+      });
     case 'name':
       return sorted.sort((a, b) => (a.username || '').localeCompare(b.username || ''));
     case 'recent':

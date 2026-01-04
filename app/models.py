@@ -52,6 +52,7 @@ class CreatorResponse(BaseModel):
     price_makeup_bride: Optional[float] = None
     price_makeup_bridesmaid: Optional[float] = None
     price_hairstyle_makeup_combo: Optional[float] = None
+    price_hairstyle_makeup_bridesmaid_combo: Optional[float] = None
     calendar_url: Optional[str] = None
     profile_picture: Optional[str] = None
     bio: Optional[str] = None

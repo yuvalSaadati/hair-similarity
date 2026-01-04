@@ -6,6 +6,7 @@ import { handleSimilaritySearch, handleClearFilters, getSimilarityDataForCreator
 export function setupFilters() {
   setupRegionDropdown();
   setupPriceSlider();
+  setupPriceSortDropdown();
   setupStyleMatch();
   setupClearFilters();
 }
@@ -85,6 +86,16 @@ function setupPriceSlider() {
   maxLabel.textContent = `₪ ${initialValue.toLocaleString()}`;
 }
 
+// Price sort dropdown functionality
+function setupPriceSortDropdown() {
+  const priceSortField = document.getElementById('priceSortField');
+  if (!priceSortField) return;
+  
+  priceSortField.addEventListener('change', () => {
+    filterCreatorsAndDisplay();
+  });
+}
+
 // Style match functionality
 function setupStyleMatch() {
   const styleMatchBtn = document.getElementById('styleMatchBtn');
@@ -133,6 +144,12 @@ function clearFilters() {
     }
   }
   
+  // Reset price sort dropdown
+  const priceSortField = document.getElementById('priceSortField');
+  if (priceSortField) {
+    priceSortField.value = '';
+  }
+  
   // Reset availability (if implemented)
   const availabilityInput = document.getElementById('filterDate');
   if (availabilityInput) {
@@ -169,8 +186,18 @@ function filterCreatorsAndDisplay() {
     return creator;
   });
   
-  // Sort creators (default: recent)
-  const sorted = sortCreators(creatorsWithSimilarity, 'recent');
+  // Get price sort field
+  const priceSortField = document.getElementById('priceSortField')?.value;
+  
+  // Sort creators
+  let sorted;
+  if (priceSortField) {
+    // Sort by selected price field (priceSortField already contains the full field name like "price_hairstyle_bride")
+    sorted = sortCreators(creatorsWithSimilarity, priceSortField);
+  } else {
+    // Default: sort by recent
+    sorted = sortCreators(creatorsWithSimilarity, 'recent');
+  }
   
   // Display results
   displayCreators(sorted);
