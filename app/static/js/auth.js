@@ -215,9 +215,17 @@ async function handleSignUp(e) {
   try {
     // Register user
     const registerData = await registerUser(email, password);
+    
+    // If user already exists, registerUser will throw an error and we won't reach here
+    // Only proceed with creator profile creation if user was successfully registered
+    if (!registerData || !registerData.token) {
+      showNotification('הרשמה נכשלה - לא התקבל אסימון הרשאה', 'error');
+      return;
+    }
+    
     localStorage.setItem('auth_token', registerData.token);
     
-    // Create creator profile
+    // Create creator profile only if user was successfully registered
     // Location is single value (where creator is leaving from)
     const location = getFormFieldValue('signup_location');
     // Arrival location is array (where creator can arrive to)
@@ -238,6 +246,7 @@ async function handleSignUp(e) {
       ingest_limit: 100
     };
     
+    // Only update creator profile if user was successfully registered (not already in system)
     await updateCreatorProfile(registerData.token, creatorData);
     
     // Ensure preloader is hidden
@@ -255,6 +264,14 @@ async function handleSignUp(e) {
     let errorMessage = 'הרשמה נכשלה';
     if (error.message) {
       errorMessage = error.message;
+    }
+    
+    // If user already exists, don't continue to updateCreatorProfile
+    // The error is already thrown and caught here, so updateCreatorProfile won't be called
+    // But we should show the error message to the user
+    if (errorMessage.includes('כבר רשום') || errorMessage.includes('already exists') || errorMessage.includes('already registered')) {
+      showNotification(errorMessage, 'error');
+      return; // Exit early, don't proceed with creator profile creation
     }
     
     showNotification(errorMessage, 'error');

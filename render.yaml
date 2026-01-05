@@ -5,10 +5,11 @@ services:
     buildCommand: pip install -r app/requirements.txt
     startCommand: cd app && uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
+      # Database Configuration
       - key: DATABASE_URL
-        fromDatabase:
-          name: hair-similarity-db
-          property: connectionString
+        sync: false  # Set this manually to your existing Render database URL (use Internal Database URL)
+      
+      # Instagram API Configuration
       - key: IG_ACCESS_TOKEN
         sync: false
       - key: IG_APP_ID
@@ -17,13 +18,18 @@ services:
         sync: false
       - key: IG_USER_ID
         sync: false
+      - key: IG_REDIRECT_URI
+        sync: false  # Optional: defaults to http://localhost:8000/auth/callback, set to your Render URL in production
+      
+      # JWT Configuration
       - key: JWT_SECRET
-        generateValue: true
-
-databases:
-  - name: hair-similarity-db
-    databaseName: postgres
-    user: postgres
-    plan: free
-
-
+        generateValue: true  # Auto-generates a secure random value
+      
+      # Google OAuth Configuration (for calendar integration - optional)
+      - key: GOOGLE_CLIENT_ID
+        sync: false  # Required if using calendar OAuth features
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false  # Required if using calendar OAuth features
+      - key: OAUTH_REDIRECT_BASE
+        sync: false  # Optional: defaults to http://localhost:8000, set to your Render URL in production (e.g., https://hair-similarity-api.onrender.com)
+    plan: free  # or starter/standard for better performance
