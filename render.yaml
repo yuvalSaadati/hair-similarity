@@ -3,7 +3,7 @@ services:
     name: hair-similarity-api
     env: python
     buildCommand: pip install -r app/requirements.txt
-    startCommand: PYTHONPATH=. uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: sh -c 'PYTHONPATH=$(pwd):$PYTHONPATH uvicorn app.main:app --host 0.0.0.0 --port $PORT'
     envVars:
       # Database Configuration
       - key: DATABASE_URL
