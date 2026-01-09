@@ -33,19 +33,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeImageDisplay();
     setupReviewsForm();
     
-    // Hide preloader after everything is loaded
-    hidePreloader();
+ 
     
-    // Show body content and remove preloader after initial load
+    // Show body content
     const body = document.body;
     body.classList.add('loaded');
-    setTimeout(() => {
-      const preloader = document.getElementById('preloader');
-      if (preloader && preloader.classList.contains('hidden')) {
-        preloader.remove();
-      }
-    }, 500);
     
+    // Hide preloader after everything is loaded
+    hidePreloader();
     console.log('✅ App initialized successfully');
   } catch (error) {
     console.error('❌ Failed to initialize app:', error);

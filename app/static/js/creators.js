@@ -267,7 +267,7 @@ export function createCreatorCard(creator) {
 // Filter creators based on criteria
 export function filterCreators(creators, filters) {
   return creators.filter(creator => {
-    // Location filter - search based on arrival_location array (where creator can arrive to)
+    // Location filter - only apply if locations are actually selected
     if (filters.locations && filters.locations.length > 0) {
       // Parse arrival_location (can be string or array)
       let creatorArrivalLocations = [];
@@ -279,6 +279,11 @@ export function filterCreators(creators, filters) {
         }
       }
       
+      // If creator has no arrival locations, exclude them when filtering by location
+      if (creatorArrivalLocations.length === 0) {
+        return false;
+      }
+      
       // Check if any filter location matches any of the creator's arrival locations
       const hasMatchingLocation = filters.locations.some(loc => 
         creatorArrivalLocations.some(creatorLoc => creatorLoc.includes(loc) || loc.includes(creatorLoc))
@@ -286,8 +291,11 @@ export function filterCreators(creators, filters) {
       if (!hasMatchingLocation) return false;
     }
     
-    // Price filter - check all price fields (excluding zero prices)
-    if (filters.maxPrice !== undefined) {
+    // Price filter - only apply if maxPrice is set and less than maximum (meaning user is filtering)
+    // Default maxPrice is 10000, so if it's 10000, consider it as "no filter"
+    const isPriceFilterActive = filters.maxPrice !== undefined && filters.maxPrice < 10000;
+    
+    if (isPriceFilterActive) {
       // Collect all price values from the creator, excluding zeros
       const allPrices = [
         creator.price_hairstyle_bride,
@@ -303,7 +311,7 @@ export function filterCreators(creators, filters) {
       .map(price => parseFloat(price))
       .filter(price => !isNaN(price) && price > 0); // Only consider prices > 0 (at least 1)
       
-      // If creator has no valid prices (all are zero or empty), exclude them
+      // If creator has no valid prices (all are zero or empty), exclude them when filtering by price
       if (allPrices.length === 0) {
         return false;
       }
@@ -313,6 +321,7 @@ export function filterCreators(creators, filters) {
       
       if (!hasPriceInRange) return false;
     }
+    // If price filter is not active (maxPrice is 10000 or undefined), show all creators regardless of price
     
     // Availability filter (placeholder for future implementation)
     if (filters.availability) {
@@ -367,45 +376,64 @@ export function sortCreators(creators, sortBy) {
     case 'price_high':
       return sorted.sort((a, b) => getMaxPrice(b) - getMaxPrice(a));
     case 'price_hairstyle_bride':
-      return sorted.sort((a, b) => {
-        const priceA = parseFloat(a.price_hairstyle_bride) || Infinity;
-        const priceB = parseFloat(b.price_hairstyle_bride) || Infinity;
-        return priceA - priceB;
-      });
+      // Filter out creators without this price, then sort
+      return sorted
+        .filter(creator => creator.price_hairstyle_bride && parseFloat(creator.price_hairstyle_bride) > 0)
+        .sort((a, b) => {
+          const priceA = parseFloat(a.price_hairstyle_bride);
+          const priceB = parseFloat(b.price_hairstyle_bride);
+          return priceA - priceB;
+        });
     case 'price_hairstyle_bridesmaid':
-      return sorted.sort((a, b) => {
-        const priceA = parseFloat(a.price_hairstyle_bridesmaid) || Infinity;
-        const priceB = parseFloat(b.price_hairstyle_bridesmaid) || Infinity;
-        return priceA - priceB;
-      });
+      // Filter out creators without this price, then sort
+      return sorted
+        .filter(creator => creator.price_hairstyle_bridesmaid && parseFloat(creator.price_hairstyle_bridesmaid) > 0)
+        .sort((a, b) => {
+          const priceA = parseFloat(a.price_hairstyle_bridesmaid);
+          const priceB = parseFloat(b.price_hairstyle_bridesmaid);
+          return priceA - priceB;
+        });
     case 'price_makeup_bride':
-      return sorted.sort((a, b) => {
-        const priceA = parseFloat(a.price_makeup_bride) || Infinity;
-        const priceB = parseFloat(b.price_makeup_bride) || Infinity;
-        return priceA - priceB;
-      });
+      // Filter out creators without this price, then sort
+      return sorted
+        .filter(creator => creator.price_makeup_bride && parseFloat(creator.price_makeup_bride) > 0)
+        .sort((a, b) => {
+          const priceA = parseFloat(a.price_makeup_bride);
+          const priceB = parseFloat(b.price_makeup_bride);
+          return priceA - priceB;
+        });
     case 'price_makeup_bridesmaid':
-      return sorted.sort((a, b) => {
-        const priceA = parseFloat(a.price_makeup_bridesmaid) || Infinity;
-        const priceB = parseFloat(b.price_makeup_bridesmaid) || Infinity;
-        return priceA - priceB;
-      });
+      // Filter out creators without this price, then sort
+      return sorted
+        .filter(creator => creator.price_makeup_bridesmaid && parseFloat(creator.price_makeup_bridesmaid) > 0)
+        .sort((a, b) => {
+          const priceA = parseFloat(a.price_makeup_bridesmaid);
+          const priceB = parseFloat(b.price_makeup_bridesmaid);
+          return priceA - priceB;
+        });
     case 'price_hairstyle_makeup_combo':
-      return sorted.sort((a, b) => {
-        const priceA = parseFloat(a.price_hairstyle_makeup_combo) || Infinity;
-        const priceB = parseFloat(b.price_hairstyle_makeup_combo) || Infinity;
-        return priceA - priceB;
-      });
+      // Filter out creators without this price, then sort
+      return sorted
+        .filter(creator => creator.price_hairstyle_makeup_combo && parseFloat(creator.price_hairstyle_makeup_combo) > 0)
+        .sort((a, b) => {
+          const priceA = parseFloat(a.price_hairstyle_makeup_combo);
+          const priceB = parseFloat(b.price_hairstyle_makeup_combo);
+          return priceA - priceB;
+        });
     case 'price_hairstyle_makeup_bridesmaid_combo':
-      return sorted.sort((a, b) => {
-        const priceA = parseFloat(a.price_hairstyle_makeup_bridesmaid_combo) || Infinity;
-        const priceB = parseFloat(b.price_hairstyle_makeup_bridesmaid_combo) || Infinity;
-        return priceA - priceB;
-      });
+      // Filter out creators without this price, then sort
+      return sorted
+        .filter(creator => creator.price_hairstyle_makeup_bridesmaid_combo && parseFloat(creator.price_hairstyle_makeup_bridesmaid_combo) > 0)
+        .sort((a, b) => {
+          const priceA = parseFloat(a.price_hairstyle_makeup_bridesmaid_combo);
+          const priceB = parseFloat(b.price_hairstyle_makeup_bridesmaid_combo);
+          return priceA - priceB;
+        });
     case 'name':
       return sorted.sort((a, b) => (a.username || '').localeCompare(b.username || ''));
     case 'recent':
     default:
+      // Show all creators when no specific price sort is selected
       return sorted.sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
   }
 }

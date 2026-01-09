@@ -276,7 +276,7 @@ def is_hair_related_caption(caption: str) -> bool:
         if any(keyword in word_lower for keyword in all_keywords):
             return True
         # Check if word is contained in any keyword (for partial matches)
-        if any(word_lower in keyword for keyword in all_keywords):
-            return True
+        # if any(word_lower == keyword for keyword in all_keywords):
+        #     return True
     
     return False

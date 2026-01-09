@@ -249,6 +249,23 @@ input[type="file"] {
   display: flex; 
 }
 
+/* Signup overlay - full screen blocking overlay */
+.signup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001; /* Above modals (1000) and preloader (10000) */
+  backdrop-filter: blur(1px);
+  cursor: not-allowed;
+  pointer-events: all;
+}
+
 .modal-card { 
   width: 480px; 
   max-width: 90vw;
@@ -925,9 +942,12 @@ textarea.form-input {
   }
 }
 
+#preloader.preloader.hidden,
 .preloader.hidden {
-  opacity: 0;
-  visibility: hidden;
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 .preloader-content {

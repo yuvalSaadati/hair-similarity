@@ -187,6 +187,53 @@ export async function openCreatorManagementModal() {
 }
 
 // Handle sign up
+// Helper function to show full-screen overlay
+function showSignupOverlay() {
+  let overlay = document.getElementById('signupOverlay');
+  if (!overlay) {
+    // Create overlay if it doesn't exist
+    overlay = document.createElement('div');
+    overlay.id = 'signupOverlay';
+    overlay.className = 'signup-overlay';
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display = 'flex';
+}
+
+// Helper function to hide full-screen overlay
+function hideSignupOverlay() {
+  const overlay = document.getElementById('signupOverlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+}
+
+// Helper function to disable all signup form fields
+function disableSignupForm() {
+  const form = document.getElementById('signUpForm');
+  if (!form) return;
+  
+  const fields = form.querySelectorAll('input, select, button[type="submit"], .region-btn');
+  fields.forEach(field => {
+    field.disabled = true;
+    field.style.opacity = '0.6';
+    field.style.cursor = 'not-allowed';
+  });
+}
+
+// Helper function to enable all signup form fields
+function enableSignupForm() {
+  const form = document.getElementById('signUpForm');
+  if (!form) return;
+  
+  const fields = form.querySelectorAll('input, select, button[type="submit"], .region-btn');
+  fields.forEach(field => {
+    field.disabled = false;
+    field.style.opacity = '';
+    field.style.cursor = '';
+  });
+}
+
 async function handleSignUp(e) {
   e.preventDefault();
   
@@ -212,6 +259,10 @@ async function handleSignUp(e) {
     return;
   }
   
+  // Disable all form fields and show full-screen overlay while saving
+  disableSignupForm();
+  showSignupOverlay();
+  
   try {
     // Register user
     const registerData = await registerUser(email, password);
@@ -219,6 +270,8 @@ async function handleSignUp(e) {
     // If user already exists, registerUser will throw an error and we won't reach here
     // Only proceed with creator profile creation if user was successfully registered
     if (!registerData || !registerData.token) {
+      hideSignupOverlay(); // Hide overlay on error
+      enableSignupForm(); // Re-enable form on error
       showNotification('הרשמה נכשלה - לא התקבל אסימון הרשאה', 'error');
       return;
     }
@@ -249,9 +302,9 @@ async function handleSignUp(e) {
     // Only update creator profile if user was successfully registered (not already in system)
     await updateCreatorProfile(registerData.token, creatorData);
     
-    // Ensure preloader is hidden
-    const { hidePreloader } = await import('./image-display.js');
-    hidePreloader();
+    // Hide overlay and re-enable form before closing modal
+    hideSignupOverlay();
+    enableSignupForm();
     
     toggleModal('signUpModal', false);
     showNotification('הרשמה הושלמה בהצלחה! התמונות שלכם נטענות ברקע...', 'success');
@@ -259,6 +312,10 @@ async function handleSignUp(e) {
     loadCreators();
   } catch (error) {
     console.error('Sign up failed:', error);
+    
+    // Hide overlay and re-enable form fields on error so user can try again
+    hideSignupOverlay();
+    enableSignupForm();
     
     // Extract error message - registerUser already extracts the detail from API
     let errorMessage = 'הרשמה נכשלה';

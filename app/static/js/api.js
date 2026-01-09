@@ -71,14 +71,42 @@ export async function registerUser(email, password) {
     });
     
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.detail || `HTTP ${res.status}: ${res.statusText}`);
+      // Check if response is JSON before parsing
+      const contentType = res.headers.get('content-type');
+      let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.detail || errorMessage;
+        } catch (parseError) {
+          console.error('Failed to parse error response as JSON:', parseError);
+          // If JSON parsing fails, try to get text
+          const text = await res.text();
+          errorMessage = text || errorMessage;
+        }
+      } else {
+        // Response is not JSON, try to get text
+        try {
+          const text = await res.text();
+          errorMessage = text || errorMessage;
+        } catch (textError) {
+          console.error('Failed to read error response:', textError);
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
     
     return await res.json();
   } catch (error) {
     console.error('Registration failed:', error);
-    throw error;
+    // If it's already an Error with a message, re-throw it
+    if (error instanceof Error) {
+      throw error;
+    }
+    // Otherwise, wrap it in an Error
+    throw new Error(error.message || 'Registration failed');
   }
 }
 
@@ -94,14 +122,38 @@ export async function loginUser(email, password) {
     });
     
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.detail || `HTTP ${res.status}: ${res.statusText}`);
+      // Check if response is JSON before parsing
+      const contentType = res.headers.get('content-type');
+      let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.detail || errorMessage;
+        } catch (parseError) {
+          console.error('Failed to parse error response as JSON:', parseError);
+          const text = await res.text();
+          errorMessage = text || errorMessage;
+        }
+      } else {
+        try {
+          const text = await res.text();
+          errorMessage = text || errorMessage;
+        } catch (textError) {
+          console.error('Failed to read error response:', textError);
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
     
     return await res.json();
   } catch (error) {
     console.error('Login failed:', error);
-    throw error;
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error(error.message || 'Login failed');
   }
 }
 
