@@ -14,7 +14,12 @@ python-multipart
 # OAuth and session management
 authlib
 python-jose[cryptography]
+PyJWT
 bcrypt
 # For CPU-only PyTorch wheels:
 torch
 torchvision
+numpy
+# Date/time utilities
+python-dateutil
+pytz
