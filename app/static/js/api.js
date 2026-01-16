@@ -39,23 +39,56 @@ export async function loadCreators(showLoading = false) {
 }
 
 // Search by uploaded image, grouped by creator (returns best match per creator)
-export async function searchByUploadByCreator(file) {
+export async function searchByUploadByCreator(file, retries = 1) {
   const formData = new FormData();
   formData.append('file', file);
   
-  try {
-    const res = await fetch(`${API_BASE}/search/upload/by-creator`, {
-      method: 'POST',
-      body: formData
-    });
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      // Add timeout for the request (60 seconds)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      
+      const res = await fetch(`${API_BASE}/search/upload/by-creator`, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!res.ok) {
+        // If it's a 502 and we have retries left, wait and retry (safety net for cold starts)
+        if (res.status === 502 && attempt < retries) {
+          console.log(`502 error, retrying... (attempt ${attempt + 1}/${retries + 1})`);
+          await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
+          continue;
+        }
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      
+      const data = await res.json();
+      return data.matches; // Array of {creator_username, image, similarity_score}
+    } catch (error) {
+      // If it's a network error and we have retries left, retry (safety net)
+      if ((error.name === 'AbortError' || error.message.includes('502') || error.message.includes('Failed to fetch')) && attempt < retries) {
+        console.log(`Network error, retrying... (attempt ${attempt + 1}/${retries + 1})`);
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
+        continue;
+      }
+      
+      // Last attempt or non-retryable error
+      console.error('Search by creator failed:', error);
+      
+      // Provide user-friendly error message
+      if (error.name === 'AbortError') {
+        throw new Error('הבקשה ארכה יותר מדי זמן. נסו שוב בעוד כמה שניות.');
+      } else if (error.message.includes('502')) {
+        throw new Error('השרת לא זמין כרגע. נסו שוב בעוד כמה שניות.');
+      } else {
+        throw error;
+      }
     }
-    const data = await res.json();
-    return data.matches; // Array of {creator_username, image, similarity_score}
-  } catch (error) {
-    console.error('Search by creator failed:', error);
-    throw error;
   }
 }
 

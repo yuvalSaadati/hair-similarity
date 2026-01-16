@@ -718,10 +718,10 @@ textarea.form-input {
   pointer-events: none; 
 }
 
-/* Creators Grid */
+/* Creators Grid - Desktop: fewer columns = wider cards */
 .creators-grid { 
   display: grid; 
-  grid-template-columns: repeat(5, 1fr); 
+  grid-template-columns: repeat(4, 1fr); 
   gap: 20px; 
   align-items: stretch; 
   justify-items: stretch;
@@ -729,15 +729,28 @@ textarea.form-input {
   max-width: 100%;
 }
 
-@media (max-width: 1200px) { 
+/* Desktop: Ensure price labels stay on one line */
+.creator-price-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1400px) { 
   .creators-grid { 
     grid-template-columns: repeat(4, 1fr); 
   } 
 }
 
-@media (max-width: 900px) { 
+@media (max-width: 1200px) { 
   .creators-grid { 
     grid-template-columns: repeat(3, 1fr); 
+  } 
+}
+
+@media (max-width: 900px) { 
+  .creators-grid { 
+    grid-template-columns: repeat(2, 1fr); 
   } 
 }
 
@@ -770,9 +783,9 @@ textarea.form-input {
     max-width: 100%;
   }
   
-  /* Body padding adjustment for mobile */
+  /* Body padding adjustment for mobile - reduced for wider cards */
   body {
-    padding: 8px;
+    padding: 4px;
     box-sizing: border-box;
   }
   
@@ -833,10 +846,22 @@ textarea.form-input {
     max-width: 150px;
   }
   
-  /* Section padding for mobile */
+  /* Section padding for mobile - reduce to give more space for cards */
   section {
-    padding: 12px !important;
-    margin: 12px auto !important;
+    padding: 6px !important;
+    margin: 6px auto !important;
+  }
+  
+  /* Ensure creator cards use full available width with minimal margins */
+  .creator-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+  
+  /* Reduce gap between cards on mobile */
+  .creators-grid {
+    gap: 12px !important;
   }
   
   /* Filter bar adjustments */
@@ -914,6 +939,49 @@ textarea.form-input {
   body {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+  }
+  
+  /* Ensure price values are never cut off in creator cards */
+  /* Make prices container single column on mobile for more space */
+  .creator-prices-container {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  
+  /* Ensure price items don't overflow */
+  .creator-price-item {
+    min-width: 0;
+    overflow: visible;
+    width: 100%;
+  }
+  
+  /* Keep price labels on one line - cards are now wider */
+  .creator-price-label {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+  
+  /* Align price value to center */
+  .creator-price-value {
+    align-self: center;
+  }
+  
+  /* Reduce font size slightly to help fit on one line */
+  .creator-price-item {
+    font-size: 10px !important;
+  }
+  
+  /* Ensure price values are always fully visible and never cut off */
+  .creator-price-value {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    min-width: fit-content !important;
+    max-width: none !important;
+    flex-shrink: 0 !important;
   }
 }
 

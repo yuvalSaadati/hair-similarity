@@ -154,7 +154,23 @@ async function updateAllCreatorCardsForSimilarity(queryImageFile) {
         
         // Use the new endpoint that finds most similar image per creator in one call
         const { searchByUploadByCreator } = await import('./api.js');
-        const matches = await searchByUploadByCreator(queryImageFile);
+        const { showNotification } = await import('./ui.js');
+        let matches;
+        try {
+            matches = await searchByUploadByCreator(queryImageFile);
+        } catch (error) {
+            // Hide preloader
+            hidePreloader();
+            
+            // Show user-friendly error notification
+            const errorMessage = error.message || 'שגיאה בחיפוש תמונות דומות';
+            showNotification(errorMessage, 'error');
+            
+            // Fall back to default view
+            setDisplayMode('default');
+            
+            throw error;
+        }
         
         // Get all creators to merge with similarity results
         const creators = await loadCreatorsWithDisplayImages();
@@ -235,6 +251,16 @@ async function updateAllCreatorCardsForSimilarity(queryImageFile) {
     } catch (error) {
         console.error('Failed to update creator cards for similarity mode:', error);
         hidePreloader();
+        
+        // Show error notification if not already shown
+        const { showNotification } = await import('./ui.js');
+        const errorMessage = error.message || 'שגיאה בעדכון התצוגה. נסו שוב מאוחר יותר.';
+        if (!errorMessage.includes('השרת לא זמין') && !errorMessage.includes('ארכה יותר מדי זמן')) {
+            showNotification(errorMessage, 'error');
+        }
+        
+        // Fall back to default view
+        setDisplayMode('default');
     }
 }
 

@@ -184,6 +184,7 @@ export function createCreatorCard(creator) {
   
   // Prices - always show container to maintain consistent height (max 3 rows = 6 prices)
   const pricesContainer = document.createElement('div');
+  pricesContainer.className = 'creator-prices-container';
   pricesContainer.style.cssText = 'margin-bottom: 8px; min-height: 66px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px;';
   
   const priceLabels = {
@@ -209,15 +210,23 @@ export function createCreatorCard(creator) {
   // Display prices in grid (2 per row)
   validPrices.forEach(({ label, price }) => {
     const priceItem = document.createElement('div');
-    priceItem.style.cssText = 'display: flex; justify-content: space-between; align-items: center; font-size: 11px;';
+    priceItem.className = 'creator-price-item';
+    priceItem.style.cssText = 'display: flex; justify-content: space-between; align-items: center; font-size: 11px; gap: 8px; min-width: 0;';
     
     const priceLabel = document.createElement('span');
+    priceLabel.className = 'creator-price-label';
     priceLabel.textContent = label;
-    priceLabel.style.cssText = 'color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+    priceLabel.style.cssText = 'color: #6b7280; flex: 1; min-width: 0; line-height: 1.3;';
     
     const priceValueEl = document.createElement('span');
-    priceValueEl.textContent = `₪${price.toLocaleString()}`;
-    priceValueEl.style.cssText = 'color: #111827; font-weight: 600; flex-shrink: 0; margin-right: 4px;';
+    priceValueEl.className = 'creator-price-value';
+    // Format price with proper locale and ensure it's a valid number
+    const formattedPrice = typeof price === 'number' && !isNaN(price) 
+      ? price.toLocaleString('he-IL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+      : String(price);
+    priceValueEl.textContent = `₪${formattedPrice}`;
+    // Ensure price value never shrinks and is always visible
+    priceValueEl.style.cssText = 'color: #111827; font-weight: 600; flex-shrink: 0; white-space: nowrap; direction: ltr; text-align: left; min-width: fit-content;';
     
     priceItem.appendChild(priceLabel);
     priceItem.appendChild(priceValueEl);
