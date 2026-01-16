@@ -1,5 +1,4 @@
 import os
-import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,7 +10,7 @@ from app.routers import auth, creators, search, me, reviews
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Initialize database and pre-load CLIP model
+    # Startup: Initialize database (CLIP model loads lazily to save memory)
     print("🚀 Starting Hair Similarity API...")
     
     # Initialize database
@@ -31,34 +30,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"⚠️  Database pre-warming failed (non-critical): {e}")
     
-    # Pre-load CLIP model in background (non-blocking)
-    # This prevents 502 errors on first similarity search request
-    # We do this in a background task so it doesn't block startup
-    async def preload_clip_model():
-        try:
-            print("🔄 Pre-loading CLIP model (this may take 30-60 seconds)...")
-            # Load model in background thread to avoid blocking startup
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, _load_clip_model_sync)
-            print("✅ CLIP model pre-loaded successfully")
-        except Exception as e:
-            print(f"⚠️  CLIP model pre-loading failed (non-critical): {e}")
-            print("   The model will load on first use, which may cause a delay.")
-    
-    def _load_clip_model_sync():
-        """Load CLIP model synchronously in background thread"""
-        from app.image_processing import get_clip_model
-        try:
-            # This will load the model and cache it globally
-            get_clip_model()
-            print("   CLIP model loaded and cached")
-        except Exception as e:
-            print(f"   Error loading CLIP model: {e}")
-            raise
-    
-    # Start pre-loading CLIP model in background (don't await - let it run async)
-    # This allows the app to start serving requests while the model loads
-    asyncio.create_task(preload_clip_model())
+    # Note: CLIP model is loaded lazily on first use to save memory
+    # Pre-loading causes out-of-memory errors on Render's free tier (512MB limit)
+    # The first similarity search request will take longer, but the app will stay within memory limits
     
     yield
     
