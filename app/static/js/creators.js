@@ -185,7 +185,8 @@ export function createCreatorCard(creator) {
   // Prices - always show container to maintain consistent height (max 3 rows = 6 prices)
   const pricesContainer = document.createElement('div');
   pricesContainer.className = 'creator-prices-container';
-  pricesContainer.style.cssText = 'margin-bottom: 8px; min-height: 66px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px;';
+  // Don't set grid-template-columns inline - let CSS handle it (2 cols desktop, 1 col mobile)
+  pricesContainer.style.cssText = 'margin-bottom: 8px; min-height: 66px; display: grid; gap: 6px 8px;';
   
   const priceLabels = {
     price_hairstyle_bride: 'תסרוקת כלה',

@@ -729,6 +729,12 @@ textarea.form-input {
   max-width: 100%;
 }
 
+/* Desktop: Prices container - 2 columns grid (like in the image) */
+.creator-prices-container {
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 8px;
+}
+
 /* Desktop: Ensure price labels stay on one line */
 .creator-price-label {
   white-space: nowrap;
@@ -942,10 +948,10 @@ textarea.form-input {
   }
   
   /* Ensure price values are never cut off in creator cards */
-  /* Make prices container single column on mobile for more space */
+  /* Mobile: Keep 2 columns for prices (same as desktop) */
   .creator-prices-container {
-    grid-template-columns: 1fr !important;
-    gap: 8px !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px 8px !important;
   }
   
   /* Ensure price items don't overflow */

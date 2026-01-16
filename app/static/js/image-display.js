@@ -6,7 +6,7 @@
  * 2. Similarity search: Show most similar image to query
  */
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = '';
 
 // Global state for current display mode
 let currentDisplayMode = 'default';
