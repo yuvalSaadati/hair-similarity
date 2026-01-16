@@ -101,7 +101,7 @@ def refresh_all_creators_images(limit_per_creator: int = 50, dry_run: bool = Fal
                 # Fetch more media items to find hair-related content (filtering happens inside)
                 # The limit_per_creator is the number of media items to fetch, 
                 # but only hair-related ones will be ingested
-                result = ingest_instagram_creators([username], limit_per_creator)
+                result = ingest_instagram_creators([username.lower()], limit_per_creator)
                 total_added += result.get("added", 0)
                 total_skipped += result.get("skipped", 0)
                 errors = result.get("errors", [])
@@ -115,7 +115,7 @@ def refresh_all_creators_images(limit_per_creator: int = 50, dry_run: bool = Fal
             # Update recent_image for the creator
             if not dry_run:
                 try:
-                    recent_image = ig_get_most_recent_image(username)
+                    recent_image = ig_get_most_recent_image(username.lower())
                     if recent_image and recent_image.get("media_url"):
                         # Get creator's user_id to update
                         with conn.cursor() as cur:
